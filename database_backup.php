@@ -115,7 +115,7 @@ foreach ($backupLog as $key => $value) {
 }
 $table->print_html();
 ?>
-<div id="progress_bar" style="display: none;" title="Loading...">
+<div id="progress_bar" style="display: none; text-align: center" title="Loading...">
     <img src="asset/ajax-loader-long.gif"/>
 </div>
 <script type="text/javascript">
@@ -128,8 +128,8 @@ $table->print_html();
 
         $("#progress_bar").dialog({
             autoOpen: false,
-            width: 250,
-            height: 80,
+            width: 300,
+            height: 90,
             modal: true,
             draggable: false,
             closeOnEscape: false,

@@ -118,7 +118,7 @@ $table->print_html();
     </div>
     <script type="text/javascript">
         $(document).ready(function(){
-            $(".upload_btn").each(function(){
+            $(".upload_btn").each(functionfunction(){
                 $(this).click(function(){
                     $("#progress_bar").dialog('open');
                 });
@@ -126,8 +126,8 @@ $table->print_html();
 
             $("#progress_bar").dialog({
                 autoOpen: false,
-                width: 250,
-                height: 80,
+                width: 300,
+                height: 90,
                 modal: true,
                 draggable: false,
                 closeOnEscape: false,
