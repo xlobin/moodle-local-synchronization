@@ -59,12 +59,16 @@ if (!empty($newSyncParam)) {
     redirect($redirectUrl, 'Failed synchronization new package.', 2);
 }
 
+$PAGE->requires->jquery();
+$PAGE->requires->jquery_plugin('ui');
+$PAGE->requires->jquery_plugin('ui-css');
+
 echo $OUTPUT->header();
 $urlNewSynchronization = new moodle_url($baseUrl, array(
     'newsynchronization' => 1,
         ));
 $newSynchronization = html_writer::link($urlNewSynchronization, get_string('newpackage', 'local_synchronization'), array(
-            'class' => 'btn pull-right'
+            'class' => 'btn pull-right upload_btn'
         ));
 echo $OUTPUT->heading(get_string('synchronize_to_server', 'local_synchronization') . $newSynchronization);
 
@@ -99,7 +103,7 @@ $urlUploadBackup = new moodle_url($baseUrl, array(
         ));
 foreach ($synchLog as $key => $value) {
     $action = ($value->status == 0) ? html_writer::link($urlUploadBackup . '&id=' . $value->id, get_string('synch', 'local_synchronization'), array(
-                'class' => 'btn',
+                'class' => 'btn upload_btn',
             )) : '';
     $table->add_data(array(
         $value->time,
@@ -108,5 +112,35 @@ foreach ($synchLog as $key => $value) {
     ));
 }
 $table->print_html();
+?>
+    <div id="progress_bar" style="display: none;" title="Loading...">
+        <img src="asset/ajax-loader-long.gif"/>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $(".upload_btn").each(function(){
+                $(this).click(function(){
+                    $("#progress_bar").dialog('open');
+                });
+            });
 
+            $("#progress_bar").dialog({
+                autoOpen: false,
+                width: 250,
+                height: 80,
+                modal: true,
+                draggable: false,
+                closeOnEscape: false,
+                closeText: "hideProgressBar",
+                resizable: false,
+                open: function(){
+                    $("button[title='hideProgressBar']").hide();
+                },
+                close: function(){
+                    $("button[title='hideProgressBar']").show();
+                }
+            });
+        });
+    </script>
+<?php
 echo $OUTPUT->footer();
