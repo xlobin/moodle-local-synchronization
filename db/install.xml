@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/synchronization/db" VERSION="20150101" COMMENT="XMLDB file for Moodle local/synchronization"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+
+    <TABLES>
+        <TABLE NAME="local_synchronization" COMMENT="Tets">
+            <FIELDS>
+                <FIELD NAME="id" LENGTH="10" SEQUENCE="true" TYPE="int" NOTNULL="true"/>
+                <FIELD NAME="time" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="16" />
+                <FIELD NAME="type" SEQUENCE="false" TYPE="char" NOTNULL="false" LENGTH="32" />
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="Tets"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="ls_backupdatabaselog" COMMENT="Table to log synchronization plugin database backup">
+            <FIELDS>
+                <FIELD NAME="id" LENGTH="10" SEQUENCE="true" TYPE="int" NOTNULL="true"/>
+                <FIELD NAME="time" SEQUENCE="false" TYPE="datetime" NOTNULL="true"/>
+                <FIELD NAME="executor" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="50" />
+                <FIELD NAME="file_location" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="255" />
+                <FIELD NAME="status" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="1" />
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="pk for database backup"/>
+            </KEYS>
+        </TABLE>
+        <TABLE NAME="ls_synchronizelog" COMMENT="Table to log synchronization plugin">
+            <FIELDS>
+                <FIELD NAME="id" LENGTH="10" SEQUENCE="true" TYPE="int" NOTNULL="true"/>
+                <FIELD NAME="time" SEQUENCE="false" TYPE="datetime" NOTNULL="true"/>
+                <FIELD NAME="version" SEQUENCE="false" TYPE="int" NOTNULL="true" LENGTH="11"/>
+                <FIELD NAME="executor" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="50" />
+                <FIELD NAME="file_location" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="255" />
+                <FIELD NAME="status" SEQUENCE="false" TYPE="char" NOTNULL="true" LENGTH="1" />
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="pk for synchroniation"/>
+            </KEYS>
+        </TABLE>
+    </TABLES>
+</XMLDB>
