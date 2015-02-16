@@ -34,6 +34,10 @@ class logSync {
             }
 
             $fileSize = file_put_contents($pathFile, $contents);
+            if ($fileSize){
+                $sql = "UPDATE {synch_log_item} SET status = 1";
+                $DB->execute($sql);
+            }
             return (($fileSize) ? $pathFile : "");
         } else {
             echo $contents;
