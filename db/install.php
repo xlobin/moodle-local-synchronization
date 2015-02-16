@@ -28,11 +28,11 @@ function xmldb_local_synchronization_install() {
     if (!defined('OVERRIDE_DB_CLASS')) {
         $filePath = $CFG->libdir . '/dmllib.php';
         $dmlFile = file($filePath);
-        $dmlFile[0] = '<?php $filename = $CFG->dirroot . \'/local/synchronization/lib/dmllib.php\';if (!file_exists($filename)) {'."\n";
+        $dmlFile[0] = '<?php $filename = $CFG->dirroot . \'/local/synchronization/lib/dmllib.php\';if (!file_exists($filename)) {' . "\n";
         $dmlFile[count($dmlFile)] = '} else {define(\'OVERRIDE_DB_CLASS\', true);require_once $filename;}';
         file_put_contents($filePath, implode($dmlFile));
         $dbman = $DB->get_manager();
-        
+
         $table = new xmldb_table('synch_log_item');
         $table->add_field('id', XMLDB_TYPE_INTEGER, 11, null, true, true);
         $table->add_field('table_name', XMLDB_TYPE_CHAR, '50', null, true);
@@ -42,9 +42,17 @@ function xmldb_local_synchronization_install() {
         $table->add_field('timelogged', XMLDB_TYPE_INTEGER, 11, null, true);
         $table->add_field('status', XMLDB_TYPE_INTEGER, 2, null, true, null, 0);
         $table->add_key('synch_log_item_pk', XMLDB_KEY_PRIMARY, array('id'));
-        if ($dbman->table_exists($table)){
+        if ($dbman->table_exists($table)) {
             $dbman->drop_table($table);
         }
         $dbman->create_table($table);
-    } 
+    }
+
+    $table = new xmldb_table('course');
+    $field = new xmldb_field('sync_version', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);
+    if ($dbman->field_exists($table, $field)) {
+        $dbman->drop_field($table, $field);
+    } else {
+        $dbman->add_field($table, $field);
+    }
 }

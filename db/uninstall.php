@@ -39,4 +39,10 @@ function xmldb_local_synchronization_uninstall() {
             $dbman->drop_table($table);
         }
     }
+
+    $table = new xmldb_table('course');
+    $field = new xmldb_field('sync_version', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);
+    if ($dbman->field_exists($table, $field)) {
+        $dbman->drop_field($table, $field);
+    }
 }
