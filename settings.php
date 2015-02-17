@@ -75,6 +75,12 @@ if ($hassiteconfig) {
 
         // adds a textfield synchronization timer on cron
         $settings->add(new admin_setting_configtext('local_synchronization/uploadtimer_to_server', get_string('uploadtimer', 'local_synchronization'), get_string('uploadtimerdescription', 'local_synchronization'), 3));
+        $timer = get_config('local_synchronization', 'uploadtimer_to_server');
+        if (!empty($timer)){
+            $task = \core\task\manager::get_scheduled_task('\local_synchronization\task\synchronize_update');
+            $task->set_hour($timer*24);
+            \core\task\manager::configure_scheduled_task($task);
+        }
  /*
         $settings->add(new admin_setting_heading('local_synchronization_heading2', get_string('database_backup', 'local_synchronization'), ''));
 
