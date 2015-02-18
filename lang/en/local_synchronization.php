@@ -37,3 +37,4 @@ $string['newsynchronization'] = 'New Synchronization';
 $string['newpackage'] = 'New Package';
 $string['synch'] = 'Synchronize';
 $string['upgrade'] = 'Upgrade';
+$string['delete'] = 'Delete';

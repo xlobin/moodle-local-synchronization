@@ -477,13 +477,7 @@ abstract class moodle_database {
         );
         
         $listTables = array(
-            'question_statistics','forum_queue','local_reminders',
-            '0','block','question_response_analysis','blog_association','blog_association','block_recent_activity','context','modules','ls_synchronizelog','local_synchronization',
-            'cache_flags','question_response_count','ls_backupdatabaselog','synch_log_item','user','sessions','log','course','course_categories',
-            'external_tokens','external_services_users','external_services_functions','external_services',
-            'external_functions','event','task_scheduled','messageinbound_datakeys','messageinbound_handlers',
-            'log_display','config_plugins','config','message_providers','config_plugins','user_preferences',
-            'upgrade_log','config_log'
+            'ls_backupdatabaselog','synch_log_item','ls_synchronizelog','local_synchronization',
         );
 
         if (isset($type[$this->last_type])) {

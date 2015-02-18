@@ -11,6 +11,7 @@ $spage = optional_param('spage', 0, PARAM_INT);
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $download = optional_param('download', 0, PARAM_INT);
 $downloadall = optional_param('downloadall', 0, PARAM_INT);
+$status = optional_param('status', 0, PARAM_ALPHA);
 $ssort = optional_param('ssort', 'time', PARAM_ALPHANUMEXT);
 $perpage = 20;
 $baseUrl = '/local/synchronization/sync_from_server.php';
@@ -32,7 +33,7 @@ if (!empty($courseid) && !empty($download)) {
                 foreach ($response->KEY as $key2 => $value2) {
                     foreach ($value2->attributes() as $key3 => $value3) {
                         $string = (string) $value3;
-                        if ($string == 'course' || $string == 'course_categories' || $string == 'category') {
+                        if ($string == 'course' || $string == 'course_categories' || $string == 'category' || $string == 'query') {
                             $attributes[$string] = (string) $value2->VALUE;
                         }
                     }
@@ -43,24 +44,50 @@ if (!empty($courseid) && !empty($download)) {
             echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
         }
         if (isset($attributes['category'])) {
-            $jumlah = $DB->count_records('course_categories', array('id' => $attributes['category']));
-            if ($jumlah > 0) {
+            if (empty($attributes['category'])) {
                 unset($attributes['course_categories']);
                 unset($attributes['category']);
-            }else{
-                unset($attributes['category']);
+            } else {
+                $jumlah = $DB->count_records('course_categories', array('id' => $attributes['category']));
+                if ($jumlah > 0) {
+                    unset($attributes['course_categories']);
+                    unset($attributes['category']);
+                } else {
+                    unset($attributes['category']);
+                }
             }
         }
     }
     $success = true;
-    foreach ($attributes as $table => $attribute) {
-        $insert = "insert into " . $CFG->prefix . "$table " . $attribute;
-        if (!$DB->execute($insert)) {
-            $success = $success && false;
+    if (isset($attributes['query'])) {
+        $query = json_decode($query);
+        foreach ($query as $row) {
+            if (!$DB->execute($row)) {
+                $success = $success && false;
+            }
+        }
+    } else {
+        if ($status == 'd') {
+            $DB->delete_records('course', array('id' => $courseid));
+        } else if ($status = 'u') {
+            $DB->delete_records('course', array('id' => $courseid));
+            foreach ($attributes as $table => $attribute) {
+                $insert = "insert into " . $CFG->prefix . "$table " . $attribute;
+                if (!$DB->execute($insert)) {
+                    $success = $success && false;
+                }
+            }
+        } else if ($status == 'c') {
+            foreach ($attributes as $table => $attribute) {
+                $insert = "insert into " . $CFG->prefix . "$table " . $attribute;
+                if (!$DB->execute($insert)) {
+                    $success = $success && false;
+                }
+            }
         }
     }
-    
-    if ($success){
+
+    if ($success) {
         redirect(new moodle_url($baseUrl), 'Successfully Download new Course Content.', 2);
         core_plugin_manager::reset_caches();
     }
@@ -80,10 +107,11 @@ if (!$CFG->enablewebservices) {
     echo $OUTPUT->notification(get_string('turnonwebservices', 'local_synchronization'), 'notifyproblem');
 }
 
-$courses = $DB->get_records('course', array(), '', 'id');
+$courses = $DB->get_records('course', array(), '', 'id, sync_version, category');
 $course_id = '';
 foreach ($courses as $course) {
-    $course_id .= ((strlen($course_id) > 0) ? "_" : "") . $course->id;
+    if ($course->category != '0')
+        $course_id .= ((strlen($course_id) > 0) ? "_" : "") . $course->id . '-' . $course->sync_version;
 }
 
 $ress->request(array('courseid' => $course_id));
@@ -141,9 +169,36 @@ $urlDownload = new moodle_url($baseUrl, array(
     'download' => 1,
         ));
 foreach ($result as $key => $value) {
-    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'], get_string('download', 'local_synchronization'), array(
-                'class' => 'btn',
-    ));
+    if ($value['status'] == 'c') {
+        
+    } else if ($value['status'] == 'd') {
+        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status='.$value['status'], get_string('download', 'local_synchronization'), array(
+                    'class' => 'btn',
+        ));
+    } else if ($value['status'] == 'u') {
+        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status='.$value['status'], get_string('download', 'local_synchronization'), array(
+                    'class' => 'btn',
+        ));
+    }
+    
+    switch ($value['status']) {
+        case 'u':
+            $message = 'upgrade';
+            break;
+        case 'd':
+            $message = 'delete';
+            $value = (array)$DB->get_record('course', array('id' => $value['id']));
+            $value['status'] = 'd';
+            break;
+        default:
+            $message = 'download';
+            break;
+    }
+    
+    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status='.$value['status'], get_string($message, 'local_synchronization'), array(
+                    'class' => 'btn',
+        ));
+
     $table->add_data(array(
         $value['id'],
         $value['fullname'],

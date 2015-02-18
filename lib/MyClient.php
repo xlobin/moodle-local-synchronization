@@ -48,6 +48,8 @@ class MyClient {
         $curl = new curl;
         $restformat = ($this->restformat == 'json') ? '&moodlewsrestformat=' . $this->restformat : '';
         $this->_responses = $curl->post($serverurl.$restformat, $params);
+//        var_dump($this->_responses);
+//        exit();
     }
     
     /**
