@@ -21,7 +21,11 @@ $schoolid = get_config('local_synchronization', 'schoolid');
 $token = get_config('local_synchronization', 'token');
 
 $ress = new MyClient($server_ip, $schoolid, $token);
-
+$message = array(
+    'u' => 'upgrade',
+    'd' => 'delete',
+    'c' => 'download'
+);
 if (!empty($courseid) && !empty($download)) {
     $ress->request(array('courseid' => $courseid, 'type' => true));
     $responses = $ress->getResponse();
@@ -59,39 +63,44 @@ if (!empty($courseid) && !empty($download)) {
         }
     }
     $success = true;
-    if (isset($attributes['query'])) {
-        $query = json_decode($query);
-        foreach ($query as $row) {
-            if (!$DB->execute($row)) {
-                $success = $success && false;
-            }
-        }
-    } else {
-        if ($status == 'd') {
-            $DB->delete_records('course', array('id' => $courseid));
-        } else if ($status = 'u') {
-            $DB->delete_records('course', array('id' => $courseid));
-            foreach ($attributes as $table => $attribute) {
-                $insert = "insert into " . $CFG->prefix . "$table " . $attribute;
-                if (!$DB->execute($insert)) {
+    if (isset($attributes)) {
+        if (isset($attributes['query'])) {
+            $query = json_decode($query);
+            foreach ($query as $row) {
+                if (!$DB->execute($row)) {
                     $success = $success && false;
                 }
             }
-        } else if ($status == 'c') {
-            foreach ($attributes as $table => $attribute) {
-                $insert = "insert into " . $CFG->prefix . "$table " . $attribute;
-                if (!$DB->execute($insert)) {
-                    $success = $success && false;
-                }
-            }
-        }
-    }
+        } else {
+            if ($status == 'd') {
+                ob_start();
+                delete_course($courseid);
+                ob_end_clean();
+            } else if ($status == 'u') {
+                ob_start();
+//                delete_course($courseid);
 
-    if ($success) {
-        redirect(new moodle_url($baseUrl), 'Successfully Download new Course Content.', 2);
-        core_plugin_manager::reset_caches();
+                ob_end_clean();
+                foreach ($attributes as $table => $insert) {
+                    if (!$DB->execute($insert)) {
+                        $success = $success && false;
+                    }
+                }
+            } else if ($status == 'c') {
+                foreach ($attributes as $table => $insert) {
+                    if (!$DB->execute($insert)) {
+                        $success = $success && false;
+                    }
+                }
+            }
+        }
+
+        if ($success) {
+            redirect(new moodle_url($baseUrl), 'Successfully ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
+            core_plugin_manager::reset_caches();
+        }
     }
-    redirect(new moodle_url($baseUrl), 'Failed Download new Course Content.', 2);
+    redirect(new moodle_url($baseUrl), 'Failed ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
 }
 
 echo $OUTPUT->header();
@@ -172,33 +181,34 @@ foreach ($result as $key => $value) {
     if ($value['status'] == 'c') {
         
     } else if ($value['status'] == 'd') {
-        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status='.$value['status'], get_string('download', 'local_synchronization'), array(
+        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string('download', 'local_synchronization'), array(
                     'class' => 'btn',
         ));
     } else if ($value['status'] == 'u') {
-        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status='.$value['status'], get_string('download', 'local_synchronization'), array(
+        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string('download', 'local_synchronization'), array(
                     'class' => 'btn',
         ));
     }
-    
+
     switch ($value['status']) {
         case 'u':
-            $message = 'upgrade';
+            $message = $message['u'];
             break;
         case 'd':
-            $message = 'delete';
-            $value = (array)$DB->get_record('course', array('id' => $value['id']));
+            $message = $message['d'];
+            $value = (array) $DB->get_record('course', array('id' => $value['id']));
             $value['status'] = 'd';
             break;
         default:
-            $message = 'download';
+            $message = $message['c'];
             break;
     }
-    
-    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status='.$value['status'], get_string($message, 'local_synchronization'), array(
-                    'class' => 'btn',
-        ));
 
+    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string($message, 'local_synchronization'), array(
+                'class' => 'btn',
+    ));
+
+    $value['course_summary'] = (isset($value['course_summary'])) ? $value['course_summary'] : '';
     $table->add_data(array(
         $value['id'],
         $value['fullname'],

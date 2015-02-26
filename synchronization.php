@@ -3,6 +3,7 @@
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
+ require_once(__DIR__ . '/lib/logSync.php');
 
 admin_externalpage_setup('localsynchronization');
 
@@ -15,8 +16,6 @@ $perpage = 20;
 $baseUrl = '/local/synchronization/synchronization.php';
 
 if (!empty($newSyncParam)) {
-    require_once(__DIR__ . '/lib/logSync.php');
-
     $log = new logSync();
     $redirectUrl = new moodle_url($baseUrl);
     if ($path = $log->generate_dump(true)) {
@@ -53,6 +52,8 @@ if (!empty($newSyncParam)) {
     if ($responses) {
         $responses = json_decode($responses);
         if ($responses->success && $DB->update_record('ls_synchronizelog', $record, false)) {
+            $log = new logSync();
+            $log->dropDump($synchRecord->file_location);
             redirect($redirectUrl, 'Successfully synchronization new package.', 2);
         }
     }

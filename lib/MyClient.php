@@ -102,6 +102,8 @@ class MyClient {
      * @return mixed
      */
     public function getResponse($parseAsArray = true) {
+//        var_dump($this->_responses);
+//        exit();
         return ($parseAsArray) ? simplexml_load_string($this->_responses) : $this->_responses;
     }
 

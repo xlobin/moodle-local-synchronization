@@ -9,6 +9,8 @@
 
 class logSync {
 
+    private $_pathFile = '';
+
     /**
      * 
      * @param boolean $asFile
@@ -19,8 +21,8 @@ class logSync {
         global $CFG, $DB;
 
         $lists = $DB->get_records('synch_log_item', array('status' => '0'));
-        
-        if (count($lists) < 1){
+
+        if (count($lists) < 1) {
             return "";
         }
         $contents = json_encode($lists);
@@ -34,13 +36,25 @@ class logSync {
             }
 
             $fileSize = file_put_contents($pathFile, $contents);
-            if ($fileSize){
+            if ($fileSize) {
                 $sql = "UPDATE {synch_log_item} SET status = 1";
                 $DB->execute($sql);
             }
+            $this->_pathFile = $pathFile;
             return (($fileSize) ? $pathFile : "");
         } else {
             echo $contents;
+        }
+    }
+
+    /**
+     * drop file of sync.json
+     * @param string $path
+     */
+    function dropDump($path = '') {
+        $filePath = (!empty($path)) ? $path : $this->_pathFile;
+        if (file_exists($filePath) && $filePath != '' && stripos($filePath, '.json')) {
+            unlink($filePath);
         }
     }
 

@@ -45,6 +45,7 @@ class synchronize_update extends \core\task\scheduled_task {
                     if ($responses) {
                         $responses = json_decode($responses);
                         if ($responses->success && $DB->update_record('ls_synchronizelog', $record, false)) {
+                            $log->dropDump();
                             echo '-- Successfully creating new synchronization --';
                         }
                     } else {
