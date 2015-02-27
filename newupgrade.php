@@ -77,6 +77,7 @@ $table->no_sorting('action');
 $table->set_attribute('cellspacing', '0');
 $table->setup();
 $sort = $table->get_sql_sort();
+
 foreach ($result as $key => $value) {
     $action = html_writer::link($urlDownload . '?url=' . $value['url'] . '&status=1', get_string('download', 'local_synchronization'), array(
                 'class' => 'btn upload_btn',
