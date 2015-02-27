@@ -34,11 +34,15 @@ if (!empty($courseid) && !empty($download)) {
         if (property_exists($responses->MULTIPLE, 'SINGLE')) {
             foreach ($responses->MULTIPLE[0]->SINGLE as $key => $response) {
                 $attributes = array();
+                $files = array();
                 foreach ($response->KEY as $key2 => $value2) {
                     foreach ($value2->attributes() as $key3 => $value3) {
                         $string = (string) $value3;
                         if ($string == 'course' || $string == 'course_categories' || $string == 'category' || $string == 'query') {
                             $attributes[$string] = (string) $value2->VALUE;
+                        }
+                        if ($string == 'files'){
+                            $files[] = (string) $value2->VALUE;
                         }
                     }
                 }
@@ -54,7 +58,7 @@ if (!empty($courseid) && !empty($download)) {
             } else {
                 $jumlah = $DB->count_records('course_categories', array('id' => $attributes['category']));
                 if ($jumlah > 0) {
-                    unset($attributes['course_categories']);
+                    $DB->delete_records('course_categories', array('id' => $attributes['category']));
                     unset($attributes['category']);
                 } else {
                     unset($attributes['category']);
@@ -77,10 +81,7 @@ if (!empty($courseid) && !empty($download)) {
                 delete_course($courseid);
                 ob_end_clean();
             } else if ($status == 'u') {
-                ob_start();
-//                delete_course($courseid);
-
-                ob_end_clean();
+                $DB->delete_records('course', array('id' => $courseid));
                 foreach ($attributes as $table => $insert) {
                     if (!$DB->execute($insert)) {
                         $success = $success && false;
@@ -148,6 +149,9 @@ if ($responses) {
         echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
     }
 }
+$PAGE->requires->jquery();
+$PAGE->requires->jquery_plugin('ui');
+$PAGE->requires->jquery_plugin('ui-css');
 
 $table = new flexible_table('tbl_synchronize_from_server');
 
@@ -205,7 +209,7 @@ foreach ($result as $key => $value) {
     }
 
     $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string($message, 'local_synchronization'), array(
-                'class' => 'btn',
+                'class' => 'btn upload_btn',
     ));
 
     $value['course_summary'] = (isset($value['course_summary'])) ? $value['course_summary'] : '';
@@ -218,6 +222,35 @@ foreach ($result as $key => $value) {
     ));
 }
 $table->print_html();
+?>
+    <div id="progress_bar" style="display: none;" title="Loading...">
+        <img src="asset/ajax-loader-long.gif"/>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $(".upload_btn").each(function(){
+                $(this).click(function(){
+                    $("#progress_bar").dialog('open');
+                });
+            });
 
-
+            $("#progress_bar").dialog({
+                autoOpen: false,
+                width: 300,
+                height: 90,
+                modal: true,
+                draggable: false,
+                closeOnEscape: false,
+                closeText: "hideProgressBar",
+                resizable: false,
+                open: function(){
+                    $("button[title='hideProgressBar']").hide();
+                },
+                close: function(){
+                    $("button[title='hideProgressBar']").show();
+                }
+            });
+        });
+    </script>
+<?php
 echo $OUTPUT->footer();
