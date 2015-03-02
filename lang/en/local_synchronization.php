@@ -38,3 +38,6 @@ $string['newpackage'] = 'New Package';
 $string['synch'] = 'Synchronize';
 $string['upgrade'] = 'Upgrade';
 $string['delete'] = 'Delete';
+$string['version'] = 'Version';
+$string['date'] = 'Date';
+$string['upgrade_module'] = 'Upgrade Module';

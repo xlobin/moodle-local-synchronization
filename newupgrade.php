@@ -36,7 +36,7 @@ if (!empty($status) && !empty($url)) {
                 }
 
                 Delete($path, false);
-                $zip->extractTo($path.DIRECTORY_SEPARATOR.'..');
+                $zip->extractTo($path . DIRECTORY_SEPARATOR . '..');
                 $zip->close();
             }
         }
@@ -57,10 +57,8 @@ $PAGE->requires->jquery_plugin('ui-css');
 
 $table = new flexible_table('tbl_synchronize_from_server');
 
-$table->define_columns(array('id', 'fullname', 'shortname', 'summary', 'action'));
-$table->define_headers(array(get_string('id', 'local_synchronization'), get_string('course_name', 'local_synchronization'),
-    get_string('shortname', 'local_synchronization'),
-    get_string('summary', 'local_synchronization'),
+$table->define_columns(array('version', 'date', 'action'));
+$table->define_headers(array(get_string('version', 'local_synchronization'), get_string('date', 'local_synchronization'),
     get_string('action', 'local_synchronization')));
 $table->set_control_variables(array(
     TABLE_VAR_SORT => 'ssort',
@@ -78,15 +76,28 @@ $table->set_attribute('cellspacing', '0');
 $table->setup();
 $sort = $table->get_sql_sort();
 
+$server_ip = get_config('local_synchronization', 'serverip');
+$version = get_config('local_synchronization')->version;
+
+$result = array(
+    array(
+        'version' => $version + 1,
+        'url' => 'http://'.$server_ip . '/upgrade/upgrade.zip',
+        'date' => date('Y-m-d'),
+    )
+);
+
 foreach ($result as $key => $value) {
-    $action = html_writer::link($urlDownload . '?url=' . $value['url'] . '&status=1', get_string('download', 'local_synchronization'), array(
-                'class' => 'btn upload_btn',
-    ));
-    $table->add_data(array(
-        $value['version'],
-        $value['date'],
-        $action,
-    ));
+    if ($version < $value['version']) {
+        $action = html_writer::link($urlDownload . '?url=' . $value['url'] . '&status=1', get_string('upgrade', 'local_synchronization'), array(
+                    'class' => 'btn upload_btn',
+        ));
+        $table->add_data(array(
+            $value['version'],
+            $value['date'],
+            $action,
+        ));
+    }
 }
 $table->print_html();
 ?>
