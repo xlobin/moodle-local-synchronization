@@ -7,6 +7,7 @@ admin_externalpage_setup('localsynchronizationupgrade');
 
 $status = optional_param('status', 0, PARAM_ALPHANUM);
 $url = optional_param('url', 0, PARAM_URL);
+$baseUrl = '/local/synchronization/newupgrade.php';
 if (!empty($status) && !empty($url)) {
     $path = __DIR__;
     $pathFile = fopen($url, 'r');
@@ -38,22 +39,24 @@ if (!empty($status) && !empty($url)) {
                 Delete($path, false);
                 $zip->extractTo($path . DIRECTORY_SEPARATOR . '..');
                 $zip->close();
+                
+                redirect($CFG->wwwroot, 'Successfully upgrade modules.', 2);
             }
+            
+            redirect(new moodle_url($baseUrl), 'Failed upgrade modules.', 2);
         }
     } else {
-        
+        redirect(new moodle_url($baseUrl), 'Failed upgrade modules.', 2);
     }
 }
-
+$PAGE->requires->jquery();
+$PAGE->requires->jquery_plugin('ui');
+$PAGE->requires->jquery_plugin('ui-css');
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('upgrade_module', 'local_synchronization'));
 if (!$CFG->enablewebservices) {
     echo $OUTPUT->notification(get_string('turnonwebservices', 'local_synchronization'), 'notifyproblem');
 }
-
-$PAGE->requires->jquery();
-$PAGE->requires->jquery_plugin('ui');
-$PAGE->requires->jquery_plugin('ui-css');
 
 $table = new flexible_table('tbl_synchronize_from_server');
 

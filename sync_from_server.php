@@ -1,9 +1,9 @@
 <?php
-
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib/MyClient.php');
+require_once($CFG->libdir.'/filelib.php');
 
 admin_externalpage_setup('localsynchfromserver');
 
@@ -41,7 +41,7 @@ if (!empty($courseid) && !empty($download)) {
                         if ($string == 'course' || $string == 'course_categories' || $string == 'category' || $string == 'query') {
                             $attributes[$string] = (string) $value2->VALUE;
                         }
-                        if ($string == 'files'){
+                        if ($string == 'files') {
                             $files[] = (string) $value2->VALUE;
                         }
                     }
@@ -51,6 +51,7 @@ if (!empty($courseid) && !empty($download)) {
         } else if (property_exists($responses, 'ERRORCODE')) {
             echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
         }
+
         if (isset($attributes['category'])) {
             if (empty($attributes['category'])) {
                 unset($attributes['course_categories']);
@@ -87,10 +88,30 @@ if (!empty($courseid) && !empty($download)) {
                         $success = $success && false;
                     }
                 }
+
+                if (isset($files)) {
+                    foreach ($files as $file) {
+                        $file = json_decode($file);
+                        $url = $file->url;
+                        unset($file->url);
+                        $fs = get_file_storage();
+                        $fs->create_file_from_url($file, $url);
+                    }
+                }
             } else if ($status == 'c') {
                 foreach ($attributes as $table => $insert) {
                     if (!$DB->execute($insert)) {
                         $success = $success && false;
+                    }
+                }
+
+                if (isset($files)) {
+                    foreach ($files as $file) {
+                        $file = json_decode($file);
+                        $url = $file->url;
+                        unset($file->url);
+                        $fs = get_file_storage();
+                        $fs->create_file_from_url($file, $url);
                     }
                 }
             }
@@ -104,6 +125,9 @@ if (!empty($courseid) && !empty($download)) {
     redirect(new moodle_url($baseUrl), 'Failed ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
 }
 
+$PAGE->requires->jquery();
+$PAGE->requires->jquery_plugin('ui');
+$PAGE->requires->jquery_plugin('ui-css');
 echo $OUTPUT->header();
 $urlNewBackup = new moodle_url($baseUrl, array(
     'downloadall' => true,
@@ -149,9 +173,6 @@ if ($responses) {
         echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
     }
 }
-$PAGE->requires->jquery();
-$PAGE->requires->jquery_plugin('ui');
-$PAGE->requires->jquery_plugin('ui-css');
 
 $table = new flexible_table('tbl_synchronize_from_server');
 
@@ -223,34 +244,34 @@ foreach ($result as $key => $value) {
 }
 $table->print_html();
 ?>
-    <div id="progress_bar" style="display: none;" title="Loading...">
-        <img src="asset/ajax-loader-long.gif"/>
-    </div>
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $(".upload_btn").each(function(){
-                $(this).click(function(){
-                    $("#progress_bar").dialog('open');
-                });
-            });
-
-            $("#progress_bar").dialog({
-                autoOpen: false,
-                width: 300,
-                height: 90,
-                modal: true,
-                draggable: false,
-                closeOnEscape: false,
-                closeText: "hideProgressBar",
-                resizable: false,
-                open: function(){
-                    $("button[title='hideProgressBar']").hide();
-                },
-                close: function(){
-                    $("button[title='hideProgressBar']").show();
-                }
+<div id="progress_bar" style="display: none;" title="Loading...">
+    <img src="asset/ajax-loader-long.gif"/>
+</div>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".upload_btn").each(function() {
+            $(this).click(function() {
+                $("#progress_bar").dialog('open');
             });
         });
-    </script>
+
+        $("#progress_bar").dialog({
+            autoOpen: false,
+            width: 300,
+            height: 90,
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            closeText: "hideProgressBar",
+            resizable: false,
+            open: function() {
+                $("button[title='hideProgressBar']").hide();
+            },
+            close: function() {
+                $("button[title='hideProgressBar']").show();
+            }
+        });
+    });
+</script>
 <?php
 echo $OUTPUT->footer();
