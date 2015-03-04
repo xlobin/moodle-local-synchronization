@@ -477,7 +477,7 @@ abstract class moodle_database {
         );
         
         $listTables = array(
-            'ls_backupdatabaselog','synch_log_item','ls_synchronizelog','local_synchronization',
+            'ls_course_version, ls_backupdatabaselog','synch_log_item','ls_synchronizelog','local_synchronization',
         );
 
         if (isset($type[$this->last_type])) {
@@ -493,7 +493,7 @@ abstract class moodle_database {
             $log->table_name = substr($table, strlen($CFG->prefix));
             $log->qtype = $this->last_type;
             $log->sqltext = $this->last_sql;
-            $log->sqlparams = implode(',', $this->last_params);
+            $log->sqlparams = json_encode($this->last_params);
             $log->timelogged = time();
             if (!in_array($log->table_name, $listTables)){
                 $this->insert_record('synch_log_item', $log);
