@@ -2,6 +2,7 @@
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
+require_once(__DIR__ . '/lib/MyClient.php');
 
 admin_externalpage_setup('localsynchronizationupgrade');
 
@@ -39,10 +40,10 @@ if (!empty($status) && !empty($url)) {
                 Delete($path, false);
                 $zip->extractTo($path . DIRECTORY_SEPARATOR . '..');
                 $zip->close();
-                
+
                 redirect($CFG->wwwroot, 'Successfully upgrade modules.', 2);
             }
-            
+
             redirect(new moodle_url($baseUrl), 'Failed upgrade modules.', 2);
         }
     } else {
@@ -60,8 +61,9 @@ if (!$CFG->enablewebservices) {
 
 $table = new flexible_table('tbl_synchronize_from_server');
 
-$table->define_columns(array('version', 'date', 'action'));
+$table->define_columns(array('version', 'date', 'description', 'action'));
 $table->define_headers(array(get_string('version', 'local_synchronization'), get_string('date', 'local_synchronization'),
+    get_string('description', 'local_synchronization'),
     get_string('action', 'local_synchronization')));
 $table->set_control_variables(array(
     TABLE_VAR_SORT => 'ssort',
@@ -79,25 +81,28 @@ $table->set_attribute('cellspacing', '0');
 $table->setup();
 $sort = $table->get_sql_sort();
 
-$server_ip = get_config('local_synchronization', 'serverip');
 $version = get_config('local_synchronization')->version;
 
-$result = array(
-    array(
-        'version' => $version + 1,
-        'url' => 'http://'.$server_ip . '/upgrade/upgrade.zip',
-        'date' => date('Y-m-d'),
-    )
-);
+$server_ip = get_config('local_synchronization', 'serverip');
+$schoolid = get_config('local_synchronization', 'schoolid');
+$token = get_config('local_synchronization', 'token');
 
-foreach ($result as $key => $value) {
+$clientUpload = new MyClient($server_ip, $schoolid, $token);
+$clientUpload->requestUpgradeVersion();
+$responses = $clientUpload->getResponse(false);
+$responses = json_decode($responses);
+$urlDownload = new moodle_url($baseUrl);
+foreach ($responses as $key => $value) {
+    $value = (array)$value;
     if ($version < $value['version']) {
         $action = html_writer::link($urlDownload . '?url=' . $value['url'] . '&status=1', get_string('upgrade', 'local_synchronization'), array(
                     'class' => 'btn upload_btn',
         ));
+        $value['date'] = (isset($value['date'])) ? $value['date'] : date('Y-m-d');
         $table->add_data(array(
             $value['version'],
             $value['date'],
+            $value['description'],
             $action,
         ));
     }

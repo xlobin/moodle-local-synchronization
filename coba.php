@@ -4,6 +4,7 @@ require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib/MyClient.php');
 require_once($CFG->libdir . '/filelib.php');
+require_once(__DIR__ . '/lib/course.php');
 
 admin_externalpage_setup('localsynchfromserver');
 
@@ -41,7 +42,7 @@ if (!empty($courseid) && !empty($download)) {
                     foreach ($value2->attributes() as $key3 => $value3) {
                         $string = (string) $value3;
                         if (
-                                //$string == 'course'  ||  $string == 'query' || 
+                        //$string == 'course'  ||  $string == 'query' || 
                                 $string == 'category' || $string == 'course_categories') {
                             $attributes[$string] = (string) $value2->VALUE;
                         }
@@ -50,6 +51,10 @@ if (!empty($courseid) && !empty($download)) {
                             if ($file) {
                                 $files[] = $file;
                             }
+                        }
+
+                        if ($string == 'version') {
+                            $version = (string) $value2->VALUE;
                         }
                         if ($string == 'course_params_data') {
                             $params_data = (string) $value2->VALUE;
@@ -70,8 +75,6 @@ if (!empty($courseid) && !empty($download)) {
         } else if (property_exists($responses, 'ERRORCODE')) {
             echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
         }
-//        echo '<pre>';
-//        var_dump($course_params_data);
 
         if (isset($attributes['category'])) {
             if (empty($attributes['category'])) {
@@ -89,7 +92,7 @@ if (!empty($courseid) && !empty($download)) {
         }
     }
     $success = true;
-    if (isset($attributes)) {
+    if (isset($attributes) || $status == 'd') {
         if (isset($attributes['query'])) {
             $query = json_decode($query);
             foreach ($query as $row) {
@@ -99,47 +102,68 @@ if (!empty($courseid) && !empty($download)) {
             }
         } else {
             if ($status == 'd') {
-                ob_start();
-                delete_course($courseid);
-                ob_end_clean();
+                    $success = delete_course($courseid, false);
             } else if ($status == 'u') {
-                update_course((array)$course_params_data[0], (array)$course_params_overview[0]);
-//                $DB->delete_records('course', array('id' => $courseid));
-//                foreach ($attributes as $table => $insert) {
-//                    if (!$DB->execute($insert)) {
-//                        $success = $success && false;
-//                    }
-//                }
-//
-//                if (isset($files)) {
-//                    foreach ($files as $file) {
-//                        $file = json_decode($file);
-//                        $url = $file->url;
-//                        unset($file->url);
-//                        $fs = get_file_storage();
-//                        $fs->create_file_from_url($file, $url);
-//                    }
-//                }
-            } else if ($status == 'c') {
-                $course = (array)$course_params_data[0];
-                $course['id'] = $courseid;
 
-                create_course($course, (array)$course_params_overview[0]);
-//                foreach ($attributes as $table => $insert) {
-//                    if (!$DB->execute($insert)) {
-//                        $success = $success && false;
-//                    }
-//                }
-//
-//                if (isset($files)) {
-//                    foreach ($files as $file) {
-//                        $file = json_decode($file);
-//                        $url = $file->url;
-//                        unset($file->url);
-//                        $fs = get_file_storage();
-//                        $fs->create_file_from_url($file, $url);
-//                    }
-//                }
+                foreach ($attributes as $table => $insert) {
+                    if (!$DB->execute($insert)) {
+                        $success = $success && false;
+                    }
+                }
+
+                $course = $course_params_data[0];
+                $course->summary_editor = (array) $course->summary_editor;
+                $coursecontext = context_course::instance($course->id);
+                $overview = (array) $course_params_overview[0];
+                $overview['context'] = $coursecontext;
+                if (isset($version)) {
+                    $course->sync_version = $version;
+                }
+                update_course($course, $overview);
+
+                if (isset($files)) {
+                    foreach ($files as $file) {
+                        $file = json_decode($file);
+                        $context = context_course::instance($course->id, MUST_EXIST);
+                        $file->contextid = $context->id;
+                        $url = $file->url;
+                        unset($file->url);
+                        $fs = get_file_storage();
+                        $fs->create_file_from_url($file, $url);
+                    }
+                }
+            } else if ($status == 'c') {
+                delete_course($courseid, false);
+
+                $attributes['alteration'] = "ALTER TABLE {course} AUTO_INCREMENT=".($courseid);
+                foreach ($attributes as $table => $insert) {
+                    if (!$DB->execute($insert)) {
+                        $success = $success && false;
+                    }
+                }
+                $course = $course_params_data[0];
+
+                $course->summary_editor = (array) $course->summary_editor;
+                $course->id = $courseid;
+
+                if (isset($version)) {
+                    $course->sync_version = $version;
+                }
+                $catcontext = context_coursecat::instance($course->category);
+                $overview = (array) $course_params_overview[0];
+                $overview['context'] = $catcontext;
+                $course = create_my_course($course, $overview);
+                if (isset($files)) {
+                    foreach ($files as $file) {
+                        $file = json_decode($file);
+                        $context = context_course::instance($course->id, MUST_EXIST);
+                        $file->contextid = $context->id;
+                        $url = $file->url;
+                        unset($file->url);
+                        $fs = get_file_storage();
+                        $fs->create_file_from_url($file, $url);
+                    }
+                }
             }
         }
 

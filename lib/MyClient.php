@@ -48,8 +48,6 @@ class MyClient {
         $curl = new curl;
         $restformat = ($this->restformat == 'json') ? '&moodlewsrestformat=' . $this->restformat : '';
         $this->_responses = $curl->post($serverurl.$restformat, $params);
-//        var_dump($this->_responses);
-//        exit();
     }
     
     /**
@@ -64,6 +62,28 @@ class MyClient {
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('database_backup' => "@" . $filePath, 'token' => $this->token);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_VERBOSE, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
+        curl_setopt($ch, CURLOPT_URL, $serverurl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+        $this->_responses = curl_exec($ch);
+    }
+    
+    /**
+     * Request to server with upload
+     */
+    public function requestUpgradeVersion($params = array()) {
+        //domain name
+        $domainname = $this->serverip;
+        //server url
+        $serverurl = $domainname . '/local/schoolreg/upgrade_version.php';
+
+        //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
+        $params = array('token' => $this->token);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_VERBOSE, 0);

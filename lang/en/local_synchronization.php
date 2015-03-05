@@ -41,3 +41,4 @@ $string['delete'] = 'Delete';
 $string['version'] = 'Version';
 $string['date'] = 'Date';
 $string['upgrade_module'] = 'Upgrade Module';
+$string['description'] = 'Description';

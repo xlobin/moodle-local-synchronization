@@ -3,7 +3,8 @@ require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib/MyClient.php');
-require_once($CFG->libdir.'/filelib.php');
+require_once($CFG->libdir . '/filelib.php');
+require_once(__DIR__ . '/lib/course.php');
 
 admin_externalpage_setup('localsynchfromserver');
 
@@ -29,20 +30,43 @@ $message = array(
 if (!empty($courseid) && !empty($download)) {
     $ress->request(array('courseid' => $courseid, 'type' => true));
     $responses = $ress->getResponse();
-
     if ($responses) {
         if (property_exists($responses->MULTIPLE, 'SINGLE')) {
             foreach ($responses->MULTIPLE[0]->SINGLE as $key => $response) {
                 $attributes = array();
                 $files = array();
+                $courses = array();
+                $course_params_data = array();
+                $course_params_overview = array();
                 foreach ($response->KEY as $key2 => $value2) {
                     foreach ($value2->attributes() as $key3 => $value3) {
                         $string = (string) $value3;
-                        if ($string == 'course' || $string == 'course_categories' || $string == 'category' || $string == 'query') {
+                        if (
+                        //$string == 'course'  ||  $string == 'query' || 
+                                $string == 'category' || $string == 'course_categories') {
                             $attributes[$string] = (string) $value2->VALUE;
                         }
                         if ($string == 'files') {
-                            $files[] = (string) $value2->VALUE;
+                            $file = (string) $value2->VALUE;
+                            if ($file) {
+                                $files[] = $file;
+                            }
+                        }
+
+                        if ($string == 'version') {
+                            $version = (string) $value2->VALUE;
+                        }
+                        if ($string == 'course_params_data') {
+                            $params_data = (string) $value2->VALUE;
+                            if ($params_data) {
+                                $course_params_data[] = json_decode($params_data);
+                            }
+                        }
+                        if ($string == 'course_params_overview') {
+                            $params_overview = (string) $value2->VALUE;
+                            if ($params_overview) {
+                                $course_params_overview[] = json_decode($params_overview);
+                            }
                         }
                     }
                 }
@@ -68,7 +92,7 @@ if (!empty($courseid) && !empty($download)) {
         }
     }
     $success = true;
-    if (isset($attributes)) {
+    if (isset($attributes) || $status == 'd') {
         if (isset($attributes['query'])) {
             $query = json_decode($query);
             foreach ($query as $row) {
@@ -78,20 +102,30 @@ if (!empty($courseid) && !empty($download)) {
             }
         } else {
             if ($status == 'd') {
-                ob_start();
-                delete_course($courseid);
-                ob_end_clean();
+                    $success = delete_course($courseid, false);
             } else if ($status == 'u') {
-                $DB->delete_records('course', array('id' => $courseid));
+
                 foreach ($attributes as $table => $insert) {
                     if (!$DB->execute($insert)) {
                         $success = $success && false;
                     }
                 }
 
+                $course = $course_params_data[0];
+                $course->summary_editor = (array) $course->summary_editor;
+                $coursecontext = context_course::instance($course->id);
+                $overview = (array) $course_params_overview[0];
+                $overview['context'] = $coursecontext;
+                if (isset($version)) {
+                    $course->sync_version = $version;
+                }
+                update_course($course, $overview);
+
                 if (isset($files)) {
                     foreach ($files as $file) {
                         $file = json_decode($file);
+                        $context = context_course::instance($course->id, MUST_EXIST);
+                        $file->contextid = $context->id;
                         $url = $file->url;
                         unset($file->url);
                         $fs = get_file_storage();
@@ -99,15 +133,31 @@ if (!empty($courseid) && !empty($download)) {
                     }
                 }
             } else if ($status == 'c') {
+                delete_course($courseid, false);
+
+                $attributes['alteration'] = "ALTER TABLE {course} AUTO_INCREMENT=".($courseid);
                 foreach ($attributes as $table => $insert) {
                     if (!$DB->execute($insert)) {
                         $success = $success && false;
                     }
                 }
+                $course = $course_params_data[0];
 
+                $course->summary_editor = (array) $course->summary_editor;
+                $course->id = $courseid;
+
+                if (isset($version)) {
+                    $course->sync_version = $version;
+                }
+                $catcontext = context_coursecat::instance($course->category);
+                $overview = (array) $course_params_overview[0];
+                $overview['context'] = $catcontext;
+                $course = create_my_course($course, $overview);
                 if (isset($files)) {
                     foreach ($files as $file) {
                         $file = json_decode($file);
+                        $context = context_course::instance($course->id, MUST_EXIST);
+                        $file->contextid = $context->id;
                         $url = $file->url;
                         unset($file->url);
                         $fs = get_file_storage();
@@ -217,19 +267,19 @@ foreach ($result as $key => $value) {
 
     switch ($value['status']) {
         case 'u':
-            $message = $message['u'];
+            $messages = $message['u'];
             break;
         case 'd':
-            $message = $message['d'];
+            $messages = $message['d'];
             $value = (array) $DB->get_record('course', array('id' => $value['id']));
             $value['status'] = 'd';
             break;
         default:
-            $message = $message['c'];
+            $messages = $message['c'];
             break;
     }
 
-    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string($message, 'local_synchronization'), array(
+    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string($messages, 'local_synchronization'), array(
                 'class' => 'btn upload_btn',
     ));
 
