@@ -41,9 +41,7 @@ if (!empty($courseid) && !empty($download)) {
                 foreach ($response->KEY as $key2 => $value2) {
                     foreach ($value2->attributes() as $key3 => $value3) {
                         $string = (string) $value3;
-                        if (
-                        //$string == 'course'  ||  $string == 'query' || 
-                                $string == 'category' || $string == 'course_categories') {
+                        if ($string == 'query') {
                             $attributes[$string] = (string) $value2->VALUE;
                         }
                         if ($string == 'files') {
