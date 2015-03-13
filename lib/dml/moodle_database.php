@@ -477,7 +477,7 @@ abstract class moodle_database {
         );
         
         $listTables = array(
-            'ls_course_version, ls_backupdatabaselog','synch_log_item','ls_synchronizelog','local_synchronization',
+            'sessions', 'ls_course_version', 'ls_backupdatabaselog','synch_log_item','ls_synchronizelog','local_synchronization',
         );
 
         if (isset($type[$this->last_type])) {
