@@ -9,18 +9,16 @@ require_once(__DIR__ . '/lib/course.php');
 
 admin_externalpage_setup('localsynchfromserver');
 
-$sections = $DB->get_records('course_sections', array('course' => 3));
+$sections = $DB->get_records('course_sections', array('course' => 2));
 foreach ($sections as $key => $sec) {
     if ($sec->sequence != "" || $sec->sequence) {
         $modlist = explode(',', $sec->sequence);
         $modules = array();
         foreach ($modlist as $mod) {
             $module = $DB->get_record('course_modules', array('id' => $mod));
-            //var_dump($module); echo '<hr/>';
             $mod_type = $DB->get_record('modules', array('id' => $module->module));
-            $module->type = $mod_type->name;
-            $module->module_data = $DB->get_record($mod_type->name, array('id' => $module->instance));
-            array_push($modules, $module);
+            $module->module_data[$mod_type->name] = $DB->get_records($mod_type->name, array('id' => $module->instance));
+            $modules[$module->id] = $module;
         }
         $sec->modules = $modules;
     }

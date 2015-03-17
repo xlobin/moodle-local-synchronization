@@ -45,9 +45,25 @@ class MyClient {
         $functionname = 'local_schoolreg_getcontent';
         //server url
         $serverurl = $domainname . '/local/schoolreg/server.php?wstoken=' . $this->token . '&wsfunction=' . $functionname;
-        $curl = new curl;
         $restformat = ($this->restformat == 'json') ? '&moodlewsrestformat=' . $this->restformat : '';
-        $this->_responses = $curl->post($serverurl.$restformat, $params);
+        $this->send($serverurl.$restformat, $params);
+    }
+    
+    /**
+     * send request
+     * @param type $url
+     * @param type $params
+     */
+    private function send($url, $params){
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_VERBOSE, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+        $this->_responses = curl_exec($ch);
     }
     
     /**
@@ -62,15 +78,8 @@ class MyClient {
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('database_backup' => "@" . $filePath, 'token' => $this->token);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
-        curl_setopt($ch, CURLOPT_URL, $serverurl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-        $this->_responses = curl_exec($ch);
+        
+        $this->send($url, $params);
     }
     
     /**
@@ -84,15 +93,8 @@ class MyClient {
 
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $params = array('token' => $this->token);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
-        curl_setopt($ch, CURLOPT_URL, $serverurl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-        $this->_responses = curl_exec($ch);
+        
+        $this->send($url, $params);
     }
     
     public function requestUploadSynch($params = array()) {
@@ -105,15 +107,7 @@ class MyClient {
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('file_path' => "@" . $filePath, 'token' => $this->token, 'version' => $params['version']);
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
-        curl_setopt($ch, CURLOPT_URL, $serverurl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-        $this->_responses = curl_exec($ch);
+        $this->send($url, $params);
     }
 
     /**
@@ -122,8 +116,6 @@ class MyClient {
      * @return mixed
      */
     public function getResponse($parseAsArray = true) {
-//        var_dump($this->_responses);
-//        exit();
         return ($parseAsArray) ? simplexml_load_string($this->_responses) : $this->_responses;
     }
 

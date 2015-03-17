@@ -45,4 +45,25 @@ function xmldb_local_synchronization_uninstall() {
     if ($dbman->field_exists($table, $field)) {
         $dbman->drop_field($table, $field);
     }
+
+    $listTables = array(
+        'course_sections', 'course_modules',
+    );
+    
+    foreach ($listTables as $key => $table) {
+        $table = new xmldb_table($table);
+        $field = new xmldb_field('my_id', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+    }
+
+    $modules = $DB->get_records('modules', array('visible' => 1));
+    foreach ($modules as $key => $values) {
+        $table = new xmldb_table($values->name);
+        $field = new xmldb_field('my_id', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+    }
 }

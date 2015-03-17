@@ -3,8 +3,8 @@ require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib/MyClient.php');
+require_once(__DIR__ . '/lib/MySynchronization.php');
 require_once($CFG->libdir . '/filelib.php');
-require_once(__DIR__ . '/lib/course.php');
 
 admin_externalpage_setup('localsynchfromserver');
 
@@ -31,141 +31,13 @@ if (!empty($courseid) && !empty($download)) {
     $ress->request(array('courseid' => $courseid, 'type' => true));
     $responses = $ress->getResponse();
     if ($responses) {
-        if (property_exists($responses->MULTIPLE, 'SINGLE')) {
-            foreach ($responses->MULTIPLE[0]->SINGLE as $key => $response) {
-                $attributes = array();
-                $files = array();
-                $courses = array();
-                $course_params_data = array();
-                $course_params_overview = array();
-                foreach ($response->KEY as $key2 => $value2) {
-                    foreach ($value2->attributes() as $key3 => $value3) {
-                        $string = (string) $value3;
-                        if ($string == 'query') {
-                            $attributes[$string] = (string) $value2->VALUE;
-                        }
-                        if ($string == 'files') {
-                            $file = (string) $value2->VALUE;
-                            if ($file) {
-                                $files[] = $file;
-                            }
-                        }
+        $Synchronization = new MySynchronization(array(
+            'response' => $responses,
+            'status' => $status,
+            'courseid' => $courseid
+        ));
 
-                        if ($string == 'version') {
-                            $version = (string) $value2->VALUE;
-                        }
-                        if ($string == 'course_params_data') {
-                            $params_data = (string) $value2->VALUE;
-                            if ($params_data) {
-                                $course_params_data[] = json_decode($params_data);
-                            }
-                        }
-                        if ($string == 'course_params_overview') {
-                            $params_overview = (string) $value2->VALUE;
-                            if ($params_overview) {
-                                $course_params_overview[] = json_decode($params_overview);
-                            }
-                        }
-                    }
-                }
-                $result[] = $attributes;
-            }
-        } else if (property_exists($responses, 'ERRORCODE')) {
-            echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
-        }
-
-        if (isset($attributes['category'])) {
-            if (empty($attributes['category'])) {
-                unset($attributes['course_categories']);
-                unset($attributes['category']);
-            } else {
-                $jumlah = $DB->count_records('course_categories', array('id' => $attributes['category']));
-                if ($jumlah > 0) {
-                    $DB->delete_records('course_categories', array('id' => $attributes['category']));
-                    unset($attributes['category']);
-                } else {
-                    unset($attributes['category']);
-                }
-            }
-        }
-    }
-    $success = true;
-    if (isset($attributes) || $status == 'd') {
-        if (isset($attributes['query'])) {
-            $query = json_decode($query);
-            foreach ($query as $row) {
-                if (!$DB->execute($row)) {
-                    $success = $success && false;
-                }
-            }
-        } else {
-            if ($status == 'd') {
-                    $success = delete_course($courseid, false);
-            } else if ($status == 'u') {
-
-                foreach ($attributes as $table => $insert) {
-                    if (!$DB->execute($insert)) {
-                        $success = $success && false;
-                    }
-                }
-
-                $course = $course_params_data[0];
-                $course->summary_editor = (array) $course->summary_editor;
-                $coursecontext = context_course::instance($course->id);
-                $overview = (array) $course_params_overview[0];
-                $overview['context'] = $coursecontext;
-                if (isset($version)) {
-                    $course->sync_version = $version;
-                }
-                update_course($course, $overview);
-
-                if (isset($files)) {
-                    foreach ($files as $file) {
-                        $file = json_decode($file);
-                        $context = context_course::instance($course->id, MUST_EXIST);
-                        $file->contextid = $context->id;
-                        $url = $file->url;
-                        unset($file->url);
-                        $fs = get_file_storage();
-                        $fs->create_file_from_url($file, $url);
-                    }
-                }
-            } else if ($status == 'c') {
-                delete_course($courseid, false);
-
-                $attributes['alteration'] = "ALTER TABLE {course} AUTO_INCREMENT=".($courseid);
-                foreach ($attributes as $table => $insert) {
-                    if (!$DB->execute($insert)) {
-                        $success = $success && false;
-                    }
-                }
-                $course = $course_params_data[0];
-
-                $course->summary_editor = (array) $course->summary_editor;
-                $course->id = $courseid;
-
-                if (isset($version)) {
-                    $course->sync_version = $version;
-                }
-                $catcontext = context_coursecat::instance($course->category);
-                $overview = (array) $course_params_overview[0];
-                $overview['context'] = $catcontext;
-                $course = create_my_course($course, $overview);
-                if (isset($files)) {
-                    foreach ($files as $file) {
-                        $file = json_decode($file);
-                        $context = context_course::instance($course->id, MUST_EXIST);
-                        $file->contextid = $context->id;
-                        $url = $file->url;
-                        unset($file->url);
-                        $fs = get_file_storage();
-                        $fs->create_file_from_url($file, $url);
-                    }
-                }
-            }
-        }
-
-        if ($success) {
+        if ($Synchronization->execute()) {
             redirect(new moodle_url($baseUrl), 'Successfully ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
             core_plugin_manager::reset_caches();
         }
@@ -239,17 +111,12 @@ $table->define_baseurl($baseUrl);
 $table->set_attribute('class', 'admintable blockstable generaltable');
 $table->set_attribute('id', 'ls_synchronize_from_server_table');
 
-
-//$table->pagesize($perpage, $jumlahBackupLog);
 $table->sortable(true, 'fullname', SORT_DESC);
 $table->no_sorting('action');
 $table->set_attribute('cellspacing', '0');
 $table->setup();
 $sort = $table->get_sql_sort();
-//$backupLog = $DB->get_records('ls_backupdatabaselog', array(), $sort, '*', ($spage * $perpage), $perpage);
-$urlDownload = new moodle_url($baseUrl, array(
-    'download' => 1,
-        ));
+$urlDownload = new moodle_url($baseUrl, array('download' => 1));
 foreach ($result as $key => $value) {
     if ($value['status'] == 'c') {
         

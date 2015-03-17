@@ -25,14 +25,15 @@
  */
 function xmldb_local_synchronization_install() {
     global $CFG, $DB;
+    
+    $dbman = $DB->get_manager();
     if (!defined('OVERRIDE_DB_CLASS')) {
         $filePath = $CFG->libdir . '/dmllib.php';
         $dmlFile = file($filePath);
         $dmlFile[0] = '<?php $filename = $CFG->dirroot . \'/local/synchronization/lib/dmllib.php\';if (!file_exists($filename)) {' . "\n";
         $dmlFile[count($dmlFile)] = '} else {define(\'OVERRIDE_DB_CLASS\', true);require_once $filename;}';
         file_put_contents($filePath, implode($dmlFile));
-        $dbman = $DB->get_manager();
-
+        
         $table = new xmldb_table('synch_log_item');
         $table->add_field('id', XMLDB_TYPE_INTEGER, 11, null, true, true);
         $table->add_field('table_name', XMLDB_TYPE_CHAR, '50', null, true);
