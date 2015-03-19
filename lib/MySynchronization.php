@@ -66,6 +66,11 @@ class MySynchronization {
         }
     }
 
+    /**
+     * get Item of object
+     * @param type array object
+     * @return type
+     */
     public function getChild($child) {
         $success = true;
         foreach ($child as $key => $value) {
@@ -85,6 +90,13 @@ class MySynchronization {
         return $success;
     }
 
+    /**
+     * executing query
+     * @global type $DB
+     * @param object $query
+     * @param string $table
+     * @return boolean
+     */
     public function executeQuery($query, $table = '') {
         global $DB;
                 
