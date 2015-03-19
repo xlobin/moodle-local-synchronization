@@ -87,7 +87,7 @@ class MySynchronization {
 
     public function executeQuery($query, $table = '') {
         global $DB;
-        
+                
         $listContext = array(
             'course_categories' => CONTEXT_COURSECAT,
             'course_modules' => CONTEXT_MODULE,
@@ -100,15 +100,15 @@ class MySynchronization {
                 $record = $DB->get_record($table, array('my_id' => $query->id));
                 $query->id = $record->id;
                 
-//                return $DB->update_record($table, $query);
+                return $DB->update_record($table, $query);
             } else {
                 unset($query->id);
                 
-//                return $DB->insert_record($table, $query);
+                return $DB->insert_record($table, $query);
             }
         }
         
-        return false;
+        return true;
     }
 
     /**
@@ -122,9 +122,6 @@ class MySynchronization {
         $query = array();
         if (isset($attributes['query'])) {
             $query = (array) json_decode($attributes['query']);
-            $query = array(
-                'course_sections' => $query
-            );
             unset($attributes['query']);
         }
         if (isset($query)) {

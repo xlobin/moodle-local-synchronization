@@ -46,7 +46,7 @@ function xmldb_local_synchronization_upgrade($oldversion) {
     if ($oldversion == 2015010100) {
         $dbman = $DB->get_manager();
         $listTables = array(
-            'course_sections', 'course_modules',
+            'course_sections', 'course_modules', 'course_categories'
         );
         foreach ($listTables as $key => $table) {
             $table = new xmldb_table($table);

@@ -47,7 +47,7 @@ function xmldb_local_synchronization_uninstall() {
     }
 
     $listTables = array(
-        'course_sections', 'course_modules',
+        'course_sections', 'course_modules', 'course_categories'
     );
     
     foreach ($listTables as $key => $table) {
