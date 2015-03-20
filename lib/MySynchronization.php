@@ -80,7 +80,9 @@ class MySynchronization {
                     $itemChild = (array) $item->my_item;
                     unset($item->my_item);
                 }
-                $success = $success && $this->executeQuery($item, $key);
+                
+                print_object($item);
+//                $success = $success && $this->executeQuery($item, $key);
                 if ($itemChild) {
                     $success = $success && $this->getChild($itemChild);
                 }
@@ -108,7 +110,7 @@ class MySynchronization {
         if (!empty($table)) {
             $query->my_id = $query->id; // assign server id into client my_id
             $jumlah = $DB->count_records($table, array('my_id' => $query->id));
-            if ($jumlah > 0 && $jumlahParent > 0) {
+            if ($jumlah > 0) {
                 $record = $DB->get_record($table, array('my_id' => $query->id));
                 $query->id = $record->id;
                 

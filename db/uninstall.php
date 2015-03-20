@@ -25,6 +25,8 @@
  */
 function xmldb_local_synchronization_uninstall() {
     global $CFG, $DB;
+    $dbman = $DB->get_manager();
+    
     if (defined('OVERRIDE_DB_CLASS')) {
         $filePath = $CFG->libdir . '/dmllib.php';
         $dmlFile = file($filePath);
@@ -32,7 +34,6 @@ function xmldb_local_synchronization_uninstall() {
         $dmlFile[count($dmlFile) - 1] = "";
         file_put_contents($filePath, implode($dmlFile));
 
-        $dbman = $DB->get_manager();
         $isExists = $dbman->table_exists('synch_log_item');
         if ($isExists) {
             $table = new xmldb_table('synch_log_item');
