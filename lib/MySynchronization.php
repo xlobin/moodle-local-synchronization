@@ -1,6 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/course.php');
+require_once(__DIR__ . '/moodle_relational_table.php');
 
 /**
  * Execute Synchronization
@@ -14,8 +15,13 @@ class MySynchronization {
     public $courseid;
     public $files = array();
     public $attributes = array();
+    private $_moodleRelation;
+    public $DB;
 
     public function __construct($params) {
+        global $DB;
+        $this->DB = $DB;
+        $this->_moodleRelation = new moodle_relational_table();
         $this->response = $params['response'];
         $this->status = $params['status'];
         $this->courseid = $params['courseid'];
@@ -71,7 +77,7 @@ class MySynchronization {
      * @param type array object
      * @return type
      */
-    public function getChild($child) {
+    public function getChild($child, $parent = false) {
         $success = true;
         foreach ($child as $key => $value) {
             foreach ($value as $item) {
@@ -80,15 +86,32 @@ class MySynchronization {
                     $itemChild = (array) $item->my_item;
                     unset($item->my_item);
                 }
+
+                if ($parent) {
+                    $this->_moodleRelation->setTable($parent, array(
+                        'tableName' => $key,
+                        'tableData' => $item
+                    ));
+                    $item = $this->_moodleRelation->fixRelation();
+                }
+
+                $item = $this->executeQuery($item, $key);
                 
-                print_object($item);
-//                $success = $success && $this->executeQuery($item, $key);
-                if ($itemChild) {
-                    $success = $success && $this->getChild($itemChild);
+                $success = $success && $item;
+                if ($itemChild && $success) {
+                    $success = $success && $this->getChild($itemChild, array(
+                                'tableName' => $key,
+                                'tableData' => $item
+                    ));
+                    $item = $this->_moodleRelation->updateRelation($key, $item);
+                    if ($item) {
+                        $this->DB->update_record($key, $item);
+                    }
+                    
                 }
             }
         }
-        
+
         return $success;
     }
 
@@ -99,9 +122,8 @@ class MySynchronization {
      * @param string $table
      * @return boolean
      */
-    public function executeQuery($query, $table = '') {
-        global $DB;
-                
+    public function executeQuery($query, $table = '', $parentData = array()) {
+
         $listContext = array(
             'course_categories' => CONTEXT_COURSECAT,
             'course_modules' => CONTEXT_MODULE,
@@ -109,20 +131,20 @@ class MySynchronization {
 
         if (!empty($table)) {
             $query->my_id = $query->id; // assign server id into client my_id
-            $jumlah = $DB->count_records($table, array('my_id' => $query->id));
+            $jumlah = $this->DB->count_records($table, array('my_id' => $query->id));
             if ($jumlah > 0) {
-                $record = $DB->get_record($table, array('my_id' => $query->id));
+                $record = $this->DB->get_record($table, array('my_id' => $query->id));
                 $query->id = $record->id;
-                
-                return $DB->update_record($table, $query);
+
+                return ($this->DB->update_record($table, $query)) ? $query : false;
             } else {
                 unset($query->id);
-                
-                return $DB->insert_record($table, $query);
+
+                return ($this->DB->insert_record($table, $query)) ? $query : false;
             }
         }
-        
-        return true;
+
+        return false;
     }
 
     /**
@@ -148,9 +170,9 @@ class MySynchronization {
                 unset($attributes['course_categories']);
                 unset($attributes['category']);
             } else {
-                $jumlah = $DB->count_records('course_categories', array('id' => $attributes['category']));
+                $jumlah = $this->DB->count_records('course_categories', array('id' => $attributes['category']));
                 if ($jumlah > 0) {
-                    $DB->delete_records('course_categories', array('id' => $attributes['category']));
+                    $this->DB->delete_records('course_categories', array('id' => $attributes['category']));
                     unset($attributes['category']);
                 } else {
                     unset($attributes['category']);
@@ -177,7 +199,7 @@ class MySynchronization {
             return delete_course($this->courseid, false);
         } else if ($status == 'u') {
             foreach ($attributes as $table => $insert) {
-                if (!$DB->execute($insert)) {
+                if (!$this->DB->execute($insert)) {
                     $success = $success && false;
                 }
             }
@@ -212,7 +234,7 @@ class MySynchronization {
 
             $attributes['alteration'] = "ALTER TABLE {course} AUTO_INCREMENT=" . ($courseid);
             foreach ($attributes as $table => $insert) {
-                if (!$DB->execute($insert)) {
+                if (!$this->DB->execute($insert)) {
                     $success = $success && false;
                 }
             }
