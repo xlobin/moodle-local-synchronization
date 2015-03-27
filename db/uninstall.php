@@ -26,7 +26,7 @@
 function xmldb_local_synchronization_uninstall() {
     global $CFG, $DB;
     $dbman = $DB->get_manager();
-    
+
     if (defined('OVERRIDE_DB_CLASS')) {
         $filePath = $CFG->libdir . '/dmllib.php';
         $dmlFile = file($filePath);
@@ -48,9 +48,13 @@ function xmldb_local_synchronization_uninstall() {
     }
 
     $listTables = array(
-        'course_sections', 'course_modules', 'course_categories'
+        'course_sections', 'course_modules', 'course_categories', 'qtype_essay_options', 'qtype_shortanswer_options',
+        'quiz_slots', 'question', 'question_datasets', 'qtype_match_options', 'qtype_match_subquestions',
+        'qtype_randomsamatch_options', 'question_multianswer', 'qtype_multichoice_options', 'question_calculated',
+        'question_numerical_units', 'question_numerical_options', 'question_numerical', 'question_truefalse', 'question_hints',
+        'question_answers', 'question_calculated_options'
     );
-    
+
     foreach ($listTables as $key => $table) {
         $table = new xmldb_table($table);
         $field = new xmldb_field('my_id', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);

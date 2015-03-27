@@ -46,7 +46,11 @@ function xmldb_local_synchronization_upgrade($oldversion) {
     if ($oldversion == 2015010100) {
         $dbman = $DB->get_manager();
         $listTables = array(
-            'course_sections', 'course_modules', 'course_categories'
+            'course_sections', 'course_modules', 'course_categories', 'qtype_essay_options', 'qtype_shortanswer_options',
+            'quiz_slots', 'question', 'question_datasets', 'qtype_match_options', 'qtype_match_subquestions',
+            'qtype_randomsamatch_options', 'question_multianswer', 'qtype_multichoice_options', 'question_calculated',
+            'question_numerical_units', 'question_numerical_options', 'question_numerical', 'question_truefalse', 'question_hints',
+            'question_answers', 'question_calculated_options'
         );
         foreach ($listTables as $key => $table) {
             $table = new xmldb_table($table);

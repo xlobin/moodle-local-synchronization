@@ -1,5 +1,5 @@
 <?php
-
+require_once($CFG->libdir .'/accesslib.php');
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -56,8 +56,20 @@ class moodle_relational_table {
         return false;
     }
 
-    public function create_context_table() {
-//        if ($this->table)
+    public function create_context_table($table, $data) {
+        switch ($table) {
+            case 'course_categories':
+                context_coursecat::instance($data->id);
+                break;
+            case 'course':
+                context_course::instance($data->id);
+                break;
+            case 'course_modules':
+                context_module::instance($data->id);
+                break;
+            default:
+                break;
+        }
     }
 
     public function fixRelation() {
