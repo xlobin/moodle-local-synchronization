@@ -160,30 +160,6 @@ class MySynchronization {
             $files = (array) json_decode($files[0]);
         }
 
-        if (isset($files)) {
-            $fs = get_file_storage();
-            echo "<pre>";
-            foreach ($files as $file) {
-                $file = (object) $file;
-                $modules_id = '';
-                if (property_exists($file, 'my_url')) {
-                    $modules_id = $file->modules_id;
-                    $my_url = $file->my_url;
-//                    unset($file->my_url);
-                }
-                unset($file->modules_id);
-                if (!empty($modules_id)) {
-                    $record = $this->DB->get_record('course_modules', array('my_id' => $modules_id));
-                    $context = context_module::instance($record->id);
-                    $file->contextid = $context->id;
-                    var_dump($file);
-//                    echo $my_url;
-                    $fs->create_file_from_url($file, $my_url);
-                }
-            }
-        }
-        exit();
-
         $query = array();
         if (isset($attributes['query'])) {
             $query = (array) json_decode($attributes['query']);
