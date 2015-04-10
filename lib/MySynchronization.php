@@ -2,6 +2,7 @@
 
 require_once(__DIR__ . '/course.php');
 require_once(__DIR__ . '/moodle_relational_table.php');
+require_once(__DIR__ . '/moodlelib.php');
 
 /**
  * Execute Synchronization
@@ -16,6 +17,8 @@ class MySynchronization {
     public $files = array();
     public $attributes = array();
     private $_moodleRelation;
+    private $_existingData;
+    private $_listId;
     public $DB;
 
     public function __construct($params) {
@@ -25,7 +28,48 @@ class MySynchronization {
         $this->response = $params['response'];
         $this->status = $params['status'];
         $this->courseid = $params['courseid'];
+//        $this->getExistingData();
         $this->parseResponse();
+    }
+
+    public function getExistingData() {
+        $sections = $this->DB->get_records('course_sections', array('course' => $this->courseid));
+        $this->_existingData['course_sections'] = $sections;
+        foreach ($sections as $keySection => $section) {
+            if ($section->sequence != "" || $section->sequence) {
+                $modlist = explode(',', $section->sequence);
+                $modules = array();
+                foreach ($modlist as $mod) {
+                    $module = $this->DB->get_record('course_modules', array('id' => $mod));
+                    $mod_type = $this->DB->get_record('modules', array('id' => $module->module));
+                    $module_item = $this->DB->get_records($mod_type->name, array('id' => $module->instance));
+                    foreach ($module_item as $keyItem => $item) {
+                        $functionName = 'getMy' . ucfirst(strtolower($mod_type->name));
+                        if (function_exists($functionName)) {
+                            if ($moduleItem = $functionName($item))
+                                $module_item[$keyItem]->my_item = $moduleItem;
+                            if (!isset($this->_existingData[$keyItem])) {
+                                $this->_existingData[$keyItem] = array();
+                            }
+                            $this->_existingData[$keyItem] = array_merge($this->_existingData[$keyItem], $module_item);
+                        }
+                    }
+                    $module->my_item[$mod_type->name] = $module_item;
+                    if (!isset($this->_existingData[$mod_type->name])) {
+                        $this->_existingData[$mod_type->name] = array();
+                    }
+                    $this->_existingData[$mod_type->name] = array_merge($this->_existingData[$mod_type->name], $module_item);
+                    $modules[$module->id] = $module;
+                }
+                if (!isset($this->_existingData['course_modules'])) {
+                    $this->_existingData['course_modules'] = array();
+                }
+                $this->_existingData['course_modules'] = array_merge($this->_existingData['course_modules'], $modules);
+//                $this->_existingData['course_modules'] = $modules;
+                $section->my_item = array('course_modules' => $modules);
+            }
+            $sections[$keySection] = $section;
+        }
     }
 
     /**
@@ -96,8 +140,12 @@ class MySynchronization {
                 }
 
                 $item = $this->executeQuery($item, $key);
+                if (isset($parent['tableName']) && $parent['tableName'] == 'course_modules' && $item) {
+                    $update = $parent['tableData'];
+                    $update->instance = $item->id;
+                    $this->DB->update_record($parent['tableName'], $update);
+                }
                 $this->_moodleRelation->create_context_table($key, $item);
-
                 $success = $success && $item;
                 if ($itemChild && $success) {
                     $success = $success && $this->getChild($itemChild, array(
@@ -123,28 +171,36 @@ class MySynchronization {
      * @return boolean
      */
     public function executeQuery($query, $table = '') {
-
-        $listContext = array(
-            'course_categories' => CONTEXT_COURSECAT,
-            'course_modules' => CONTEXT_MODULE,
-        );
-
         if (!empty($table)) {
             $query->my_id = $query->id; // assign server id into client my_id
+            if (property_exists($query, 'school_id')) {
+                unset($query->school_id);
+            }
             $jumlah = $this->DB->count_records($table, array('my_id' => $query->id));
             if ($jumlah > 0) {
                 $record = $this->DB->get_record($table, array('my_id' => $query->id));
                 $query->id = $record->id;
-
+                if (isset($this->_existingData[$table])) {
+                    $this->_listId[$table][] = $query->id;
+                }
                 return ($this->DB->update_record($table, $query)) ? $query : false;
             } else {
                 unset($query->id);
                 $query->id = $this->DB->insert_record($table, $query);
+                if (isset($this->_listId[$table])) {
+                    $this->_listId[$table][] = $query->id;
+                }
                 return ($query) ? $query : false;
             }
         }
 
         return false;
+    }
+
+    public function deleteRemovedData() {
+        foreach ($this->_listId as $key => $value) {
+            
+        }
     }
 
     /**
@@ -238,6 +294,7 @@ class MySynchronization {
                         }
                     }
                 }
+                $this->deleteRemovedData();
 
                 $transaction->allow_commit();
             } catch (Exception $exc) {
@@ -250,9 +307,13 @@ class MySynchronization {
                 $transaction = $this->DB->start_delegated_transaction();
                 $jumlah = $this->DB->count_records('course', array('id' => $this->courseid));
                 $success = ($jumlah > 0) ? delete_course($this->courseid, false) : true;
+                $course = $course_params_data;
 
                 if (isset($category)) {
                     $this->getChild(array('course_categories' => $category));
+                    foreach ($category as $keyCategory => $valueCategory) {
+                        $course->category = $valueCategory->id;
+                    }
                 }
 
                 $attributes['alteration'] = "ALTER TABLE {course} AUTO_INCREMENT=" . ($this->courseid);
@@ -261,7 +322,6 @@ class MySynchronization {
                         $success = $success && false;
                     }
                 }
-                $course = $course_params_data;
 
                 $course->summary_editor = (array) $course->summary_editor;
                 $course->id = $this->courseid;
@@ -292,12 +352,16 @@ class MySynchronization {
                         unset($file->modules_id);
                         if (!empty($modules_id)) {
                             $record = $this->DB->get_record('course_modules', array('my_id' => $modules_id));
-                            $context = context_module::instance($record->id);
-                            $file->contextid = $context->id;
-                            $fs->create_file_from_url($file, $my_url);
+                            if ($record) {
+                                $context = context_module::instance($record->id);
+                                $file->contextid = $context->id;
+                                $fs->create_file_from_url($file, $my_url);
+                            }
                         }
                     }
                 }
+
+//                $this->deleteRemovedData();
                 $transaction->allow_commit();
             } catch (Exception $exc) {
                 $transaction->rollback($exc);

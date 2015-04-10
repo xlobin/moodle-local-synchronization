@@ -14,12 +14,7 @@ if ($hassiteconfig) {
         }
     }
 
-
-
     if ($isadmin) {
-        if (!defined('OVERRIDE_DB_CLASS')) {
-            echo $OUTPUT->notification('Synchronization module doesn\'t work properly. please reinstall.', 'notifyproblem');
-        }
         $listNodes = array(
             'localdatabasebackup' => array(
                 'url' => new moodle_url('/local/synchronization/database_backup.php'),

@@ -79,7 +79,7 @@ class MyClient {
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('database_backup' => "@" . $filePath, 'token' => $this->token);
         
-        $this->send($url, $params);
+        $this->send($serverurl, $params);
     }
     
     /**
@@ -94,7 +94,7 @@ class MyClient {
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $params = array('token' => $this->token);
         
-        $this->send($url, $params);
+        $this->send($serverurl, $params);
     }
     
     public function requestUploadSynch($params = array()) {
@@ -107,7 +107,7 @@ class MyClient {
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('file_path' => "@" . $filePath, 'token' => $this->token, 'version' => $params['version']);
 
-        $this->send($url, $params);
+        $this->send($serverurl, $params);
     }
 
     /**

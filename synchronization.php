@@ -47,7 +47,6 @@ if (!empty($newSyncParam)) {
         'version' => $synchRecord->version
     ));
     $responses = $clientUpload->getResponse(false);
-    
     $redirectUrl = new moodle_url($baseUrl);
     if ($responses) {
         $responses = json_decode($responses);

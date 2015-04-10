@@ -25,29 +25,8 @@
  */
 function xmldb_local_synchronization_install() {
     global $CFG, $DB;
-    
+
     $dbman = $DB->get_manager();
-    if (!defined('OVERRIDE_DB_CLASS')) {
-        $filePath = $CFG->libdir . '/dmllib.php';
-        $dmlFile = file($filePath);
-        $dmlFile[0] = '<?php $filename = $CFG->dirroot . \'/local/synchronization/lib/dmllib.php\';if (!file_exists($filename)) {' . "\n";
-        $dmlFile[count($dmlFile)] = '} else {define(\'OVERRIDE_DB_CLASS\', true);require_once $filename;}';
-        file_put_contents($filePath, implode($dmlFile));
-        
-        $table = new xmldb_table('synch_log_item');
-        $table->add_field('id', XMLDB_TYPE_INTEGER, 11, null, true, true);
-        $table->add_field('table_name', XMLDB_TYPE_CHAR, '50', null, true);
-        $table->add_field('qtype', XMLDB_TYPE_CHAR, '20', null, true);
-        $table->add_field('sqltext', XMLDB_TYPE_TEXT, null, null, true);
-        $table->add_field('sqlparams', XMLDB_TYPE_TEXT, null, null, true);
-        $table->add_field('timelogged', XMLDB_TYPE_INTEGER, 11, null, true);
-        $table->add_field('status', XMLDB_TYPE_INTEGER, 2, null, true, null, 0);
-        $table->add_key('synch_log_item_pk', XMLDB_KEY_PRIMARY, array('id'));
-        if ($dbman->table_exists($table)) {
-            $dbman->drop_table($table);
-        }
-        $dbman->create_table($table);
-    }
 
     $table = new xmldb_table('course');
     $field = new xmldb_field('sync_version', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);
@@ -58,13 +37,74 @@ function xmldb_local_synchronization_install() {
     }
 
     $listTables = array(
-        'course_sections', 'course_modules', 'course_categories','qtype_essay_options','qtype_shortanswer_options',
-        'quiz_slots', 'question','question_datasets','qtype_match_options','qtype_match_subquestions',
-        'qtype_randomsamatch_options','question_multianswer','qtype_multichoice_options','question_calculated',
-        'question_numerical_units','question_numerical_options','question_numerical','question_truefalse','question_hints',
-        'question_answers','question_calculated_options'
+        'course_sections', 
+        'course_modules', 
+        'course_categories',
+        'quiz_slots',
+        'question',
+        'question_answers',
+        'question_hints',
+        'question_truefalse',
+        'question_numerical',
+        'question_numerical_options',
+        'question_numerical_units',
+        'question_calculated_options',
+        'question_calculated',
+        'qtype_multichoice_options',
+        'question_multianswer',
+        'qtype_randomsamatch_options',
+        'qtype_shortanswer_options',
+        'qtype_essay_options',
+        'qtype_match_subquestions',
+        'qtype_match_options',
+        'question_datasets',
+        'quiz_feedback',
+        'book_chapters',
+        'choice_options',
+        'glossary_categories',
+        'glossary_entries',
+        'glossary_alias',
+        'glossary_entries_categories',
+        'lesson_pages',
+        'lesson_answers',
+        'wiki_subwikis',
+        'wiki_pages',
+        'wiki_versions',
+        'wiki_links',
+        'forum_discussions',
+        'forum_posts',
+        'workshop_old',
+        'workshop_elements_old',
+        'workshop_grades_old',
+        'workshop_rubrics_old',
+        'workshop_stockcomments_old',
+        'workshop_submissions',
+        'workshop_assessments',
+        'workshop_grades',
+        'workshopallocation_scheduled',
+        'workshopeval_best_settings',
+        'workshopform_accumulative',
+        'workshopform_comments',
+        'workshopform_numerrors',
+        'workshopform_numerrors_map',
+        'workshopform_rubric',
+        'workshopform_rubric_levels',
+        'workshopform_rubric_config',
+        'feedback_item',
+        'feedback_sitecourse_map',
+        'feedback_template',
+        'feedback_value',
+        'feedback_valuetmp',
+        'scorm_scoes',
+        'scorm_scoes_data',
+        'scorm_seq_mapinfo',
+        'scorm_seq_objective',
+        'scorm_seq_rolluprule',
+        'scorm_seq_rolluprulecond',
+        'scorm_seq_rulecond',
+        'scorm_seq_ruleconds',
     );
-    
+
     foreach ($listTables as $key => $table) {
         $table = new xmldb_table($table);
         $field = new xmldb_field('my_id', XMLDB_TYPE_INTEGER, 11, null, null, null, 0);
