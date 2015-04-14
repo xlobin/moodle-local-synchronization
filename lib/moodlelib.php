@@ -14,8 +14,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_answers'])) {
                     $results['question_answers'] = array();
                 }
-                $results['question_answers'] = array_merge($results['question_answers'], $answer);
-                $questions[$keyQuestion]->my_item['question_answers'] = $answer;
+                $results['question_answers'] = $results['question_answers'] + $answer;
+                //$questions[$keyQuestion]->my_item['question_answers'] = $answer;
             }
 
             /* HINTS */
@@ -24,8 +24,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_hints'])) {
                     $results['question_hints'] = array();
                 }
-                $results['question_hints'] = array_merge($results['question_hints'], $truefalse);
-                $questions[$keyQuestion]->my_item['question_hints'] = $hint;
+                $results['question_hints'] = $results['question_hints'] + $truefalse;
+                //$questions[$keyQuestion]->my_item['question_hints'] = $hint;
             }
 
             /* TRUEFALSE */
@@ -34,8 +34,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_truefalse'])) {
                     $results['question_truefalse'] = array();
                 }
-                $results['question_truefalse'] = array_merge($results['question_truefalse'], $truefalse);
-                $questions[$keyQuestion]->my_item['question_truefalse'] = $truefalse;
+                $results['question_truefalse'] = $results['question_truefalse']+ $truefalse;
+                //$questions[$keyQuestion]->my_item['question_truefalse'] = $truefalse;
             }
 
             /* NUMERICAL */
@@ -44,24 +44,24 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_numerical'])) {
                     $results['question_numerical'] = array();
                 }
-                $results['question_numerical'] = array_merge($results['question_numerical'], $numerical);
-                $questions[$keyQuestion]->my_item['question_numerical'] = $numerical;
+                $results['question_numerical'] = $results['question_numerical']+ $numerical;
+                //$questions[$keyQuestion]->my_item['question_numerical'] = $numerical;
 
                 $numerical_option = $DB->get_records('question_numerical_options', array('question' => $question->id));
                 if (count($numerical_option) > 0) {
                     if (!isset($results['question_numerical_options'])) {
                         $results['question_numerical_options'] = array();
                     }
-                    $results['question_numerical_options'] = array_merge($results['question_numerical_options'], $numerical_option);
-                    $questions[$keyQuestion]->my_item['question_numerical_options'] = $numerical_option;
+                    $results['question_numerical_options'] = $results['question_numerical_options']+ $numerical_option;
+                    //$questions[$keyQuestion]->my_item['question_numerical_options'] = $numerical_option;
                 }
                 $numerical_unit = $DB->get_records('question_numerical_units', array('question' => $question->id));
                 if (count($numerical_unit) > 0) {
                     if (!isset($results['question_numerical_units'])) {
                         $results['question_numerical_units'] = array();
                     }
-                    $results['question_numerical_units'] = array_merge($results['question_numerical_units'], $numerical_unit);
-                    $questions[$keyQuestion]->my_item['question_numerical_units'] = $numerical_unit;
+                    $results['question_numerical_units'] = $results['question_numerical_units']+ $numerical_unit;
+                    //$questions[$keyQuestion]->my_item['question_numerical_units'] = $numerical_unit;
                 }
             }
 
@@ -71,8 +71,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_calculated_options'])) {
                     $results['question_calculated_options'] = array();
                 }
-                $results['question_calculated_options'] = array_merge($results['question_calculated_options'], $calculated_option);
-                $questions[$keyQuestion]->my_item['question_calculated_options'] = $calculated_option;
+                $results['question_calculated_options'] = $results['question_calculated_options']+ $calculated_option;
+                //$questions[$keyQuestion]->my_item['question_calculated_options'] = $calculated_option;
             }
 
             /* CALCULATED */
@@ -81,8 +81,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_calculated'])) {
                     $results['question_calculated'] = array();
                 }
-                $results['question_calculated'] = array_merge($results['question_calculated'], $calculated);
-                $questions[$keyQuestion]->my_item['question_calculated'] = $calculated;
+                $results['question_calculated'] = $results['question_calculated']+ $calculated;
+                //$questions[$keyQuestion]->my_item['question_calculated'] = $calculated;
             }
 
             /* MULTICHOICE OPTION */
@@ -91,8 +91,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['qtype_multichoice_options'])) {
                     $results['qtype_multichoice_options'] = array();
                 }
-                $results['qtype_multichoice_options'] = array_merge($results['qtype_multichoice_options'], $multiopt);
-                $questions[$keyQuestion]->my_item['qtype_multichoice_options'] = $multiopt;
+                $results['qtype_multichoice_options'] = $results['qtype_multichoice_options']+ $multiopt;
+                //$questions[$keyQuestion]->my_item['qtype_multichoice_options'] = $multiopt;
             }
 
             /* MULTIANSWER */
@@ -101,8 +101,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_multianswer'])) {
                     $results['question_multianswer'] = array();
                 }
-                $results['question_multianswer'] = array_merge($results['question_multianswer'], $multianswer);
-                $questions[$keyQuestion]->my_item['question_multianswer'] = $multianswer;
+                $results['question_multianswer'] = $results['question_multianswer']+ $multianswer;
+                //$questions[$keyQuestion]->my_item['question_multianswer'] = $multianswer;
             }
 
             /* RANDOMSAMATCH OPTION */
@@ -111,8 +111,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['qtype_randomsamatch_options'])) {
                     $results['qtype_randomsamatch_options'] = array();
                 }
-                $results['qtype_randomsamatch_options'] = array_merge($results['qtype_randomsamatch_options'], $randomsamatch);
-                $questions[$keyQuestion]->my_item['qtype_randomsamatch_options'] = $randomsamatch;
+                $results['qtype_randomsamatch_options'] = $results['qtype_randomsamatch_options']+ $randomsamatch;
+                //$questions[$keyQuestion]->my_item['qtype_randomsamatch_options'] = $randomsamatch;
             }
 
             /* SHORTANSWER OPTION */
@@ -121,8 +121,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['qtype_shortanswer_options'])) {
                     $results['qtype_shortanswer_options'] = array();
                 }
-                $results['qtype_shortanswer_options'] = array_merge($results['qtype_shortanswer_options'], $shortopt);
-                $questions[$keyQuestion]->my_item['qtype_shortanswer_options'] = $shortopt;
+                $results['qtype_shortanswer_options'] = $results['qtype_shortanswer_options']+ $shortopt;
+                //$questions[$keyQuestion]->my_item['qtype_shortanswer_options'] = $shortopt;
             }
 
             /* ESSAY */
@@ -131,8 +131,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['qtype_essay_options'])) {
                     $results['qtype_essay_options'] = array();
                 }
-                $results['qtype_essay_options'] = array_merge($results['qtype_essay_options'], $essay);
-                $questions[$keyQuestion]->my_item['qtype_essay_options'] = $essay;
+                $results['qtype_essay_options'] = $results['qtype_essay_options']+ $essay;
+                //$questions[$keyQuestion]->my_item['qtype_essay_options'] = $essay;
             }
 
             /* MATCH SUBQUESTION */
@@ -141,8 +141,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['qtype_match_subquestions'])) {
                     $results['qtype_match_subquestions'] = array();
                 }
-                $results['qtype_match_subquestions'] = array_merge($results['qtype_match_subquestions'], $matchsub);
-                $questions[$keyQuestion]->my_item['qtype_match_subquestions'] = $matchsub;
+                $results['qtype_match_subquestions'] = $results['qtype_match_subquestions']+ $matchsub;
+                //$questions[$keyQuestion]->my_item['qtype_match_subquestions'] = $matchsub;
             }
 
             /* MATCH OPTION */
@@ -151,8 +151,8 @@ function getMyQuiz($quiz) {
                 if (!isset($results['qtype_match_options'])) {
                     $results['qtype_match_options'] = array();
                 }
-                $results['qtype_match_options'] = array_merge($results['qtype_match_options'], $matchopt);
-                $questions[$keyQuestion]->my_item['qtype_match_options'] = $matchopt;
+                $results['qtype_match_options'] = $results['qtype_match_options']+ $matchopt;
+                //$questions[$keyQuestion]->my_item['qtype_match_options'] = $matchopt;
             }
 
             /* DATASET */
@@ -161,11 +161,11 @@ function getMyQuiz($quiz) {
                 if (!isset($results['question_datasets'])) {
                     $results['question_datasets'] = array();
                 }
-                $results['question_datasets'] = array_merge($results['question_datasets'], $dataset);
-                $questions[$keyQuestion]->my_item['question_datasets'] = $dataset;
+                $results['question_datasets'] = $results['question_datasets']+ $dataset;
+                //$questions[$keyQuestion]->my_item['question_datasets'] = $dataset;
             }
         }
-        $quizSlots[$keySlot]->my_item['question'] = $questions;
+        //$quizSlots[$keySlot]->my_item['question'] = $questions;
 
         $results['question'] = $questions;
     }
@@ -246,7 +246,7 @@ function getMyWiki($wikis) {
         if (!isset($results['wiki_subwikis'])) {
             $results['wiki_subwikis'] = array();
         }
-        $results['wiki_subwikis'] = array_merge($results['wiki_subwikis'], $subwikis);
+        $results['wiki_subwikis'] = $results['wiki_subwikis']+ $subwikis;
         foreach ($subwikis as $keySubwikis => $sub) {
             $pages = $DB->get_records('wiki_pages', array('subwikiid' => $sub->id));
             if (count($pages) > 0) {
@@ -257,13 +257,13 @@ function getMyWiki($wikis) {
                         if (!isset($results['wiki_versions'])) {
                             $results['wiki_versions'] = array();
                         }
-                        $results['wiki_versions'] = array_merge($results['wiki_versions'], $versions);
+                        $results['wiki_versions'] = $results['wiki_versions']+ $versions;
                     }
                 }
                 if (!isset($results['wiki_pages'])) {
                     $results['wiki_pages'] = array();
                 }
-                $results['wiki_pages'] = array_merge($results['wiki_pages'], $pages);
+                $results['wiki_pages'] = $results['wiki_pages']+ $pages;
                 $subwikis[$keySubwikis]->my_item['wiki_pages'] = $pages;
             }
 
@@ -272,7 +272,7 @@ function getMyWiki($wikis) {
                 if (!isset($results['wiki_links'])) {
                     $results['wiki_links'] = array();
                 }
-                $results['wiki_links'] = array_merge($results['wiki_links'], $links);
+                $results['wiki_links'] = $results['wiki_links']+ $links;
                 $subwikis[$keySubwikis]->my_item['wiki_links'] = $links;
             }
         }
@@ -290,14 +290,14 @@ function getMyForum($forum) {
         if (!isset($results['forum_discussions'])) {
             $results['forum_discussions'] = array();
         }
-        $results['forum_discussions'] = array_merge($results['forum_discussions'], $discussions);
+        $results['forum_discussions'] = $results['forum_discussions']+ $discussions;
         foreach ($discussions as $keyDiscussions => $value) {
             $posts = $DB->get_records('forum_posts', array('discussion' => $value->id, 'userid' => 2));
             if (count($posts) > 0) {
                 if (!isset($results['forum_posts'])) {
                     $results['forum_posts'] = array();
                 }
-                $results['forum_posts'] = array_merge($results['forum_posts'], $posts);
+                $results['forum_posts'] = $results['forum_posts']+ $posts;
                 $discussions[$keyDiscussions]->my_item['forum_posts'] = $posts;
             }
         }
@@ -320,21 +320,21 @@ function getMyWorkshop($workshop) {
         if (!isset($ws['workshop_submissions'])) {
             $ws['workshop_submissions'] = array();
         }
-        $ws['workshop_submissions'] = array_merge($ws['workshop_submissions'], $submissions);
+        $ws['workshop_submissions'] = $ws['workshop_submissions']+ $submissions;
         foreach ($submissions as $keySubmission => $sub) {
             $assessments = $DB->get_records('workshop_assessments', array('submissionid' => $sub->id));
             if (count($assessments) > 0) {
                 if (!isset($ws['workshop_assessments'])) {
                     $ws['workshop_assessments'] = array();
                 }
-                $ws['workshop_assessments'] = array_merge($ws['workshop_assessments'], $assessments);
+                $ws['workshop_assessments'] = $ws['workshop_assessments']+ $assessments;
                 foreach ($assessments as $keyAssessment => $asses) {
                     $grades = $DB->get_records('workshop_grades', array('assessmentid' => $asses->id));
                     $assessments[$keyAssessment]->my_item['workshop_grades'] = ($grades) ? $grades : null;
                     if (!isset($ws['workshop_grades'])) {
                         $ws['workshop_grades'] = array();
                     }
-                    $ws['workshop_grades'] = array_merge($ws['workshop_grades'], $grades);
+                    $ws['workshop_grades'] = $ws['workshop_grades']+ $grades;
                 }
             }
             $submissions[$keySubmission]->my_item['workshop_assessments'] = ($assessments) ? $assessments : null;
@@ -355,7 +355,7 @@ function getMyWorkshop($workshop) {
                 if (!isset($ws['workshopform_rubric_levels'])) {
                     $ws['workshopform_rubric_levels'] = array();
                 }
-                $ws['workshopform_rubric_levels'] = array_merge($ws['workshopform_rubric_levels'], $workshopform_rubric_levels);
+                $ws['workshopform_rubric_levels'] = $ws['workshopform_rubric_levels']+ $workshopform_rubric_levels;
                 $workshopform_rubric[$keyWorkshopRubric]->my_item['workshopform_rubric_levels'] = $workshopform_rubric_levels;
             }
         }
@@ -417,7 +417,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_scoes_data'])) {
                     $results['scorm_scoes_data'] = array();
                 }
-                $results['scorm_scoes_data'] = array_merge($results['scorm_scoes_data'], $scoes_data);
+                $results['scorm_scoes_data'] = $results['scorm_scoes_data']+ $scoes_data;
                 $scoes[$keyScorm]->my_item['scorm_scoes_data'] = $scoes_data;
             }
 
@@ -427,7 +427,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_seq_mapinfo'])) {
                     $results['scorm_seq_mapinfo'] = array();
                 }
-                $results['scorm_seq_mapinfo'] = array_merge($results['scorm_seq_mapinfo'], $seq_mapinfo);
+                $results['scorm_seq_mapinfo'] = $results['scorm_seq_mapinfo']+ $seq_mapinfo;
                 $scoes[$keyScorm]->my_item['scorm_seq_mapinfo'] = $seq_mapinfo;
             }
 
@@ -437,7 +437,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_seq_objective'])) {
                     $results['scorm_seq_objective'] = array();
                 }
-                $results['scorm_seq_objective'] = array_merge($results['scorm_seq_objective'], $seq_objective);
+                $results['scorm_seq_objective'] = $results['scorm_seq_objective']+ $seq_objective;
                 $scoes[$keyScorm]->my_item['scorm_seq_objective'] = $seq_objective;
             }
 
@@ -447,7 +447,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_seq_rolluprule'])) {
                     $results['scorm_seq_rolluprule'] = array();
                 }
-                $results['scorm_seq_rolluprule'] = array_merge($results['scorm_seq_rolluprule'], $seq_rolluprole);
+                $results['scorm_seq_rolluprule'] = $results['scorm_seq_rolluprule']+ $seq_rolluprole;
                 $scoes[$keyScorm]->my_item['scorm_seq_rolluprule'] = $seq_rolluprole;
             }
 
@@ -457,7 +457,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_seq_rolluprulecond'])) {
                     $results['scorm_seq_rolluprulecond'] = array();
                 }
-                $results['scorm_seq_rolluprulecond'] = array_merge($results['scorm_seq_rolluprulecond'], $seq_rolluprolecond);
+                $results['scorm_seq_rolluprulecond'] = $results['scorm_seq_rolluprulecond']+ $seq_rolluprolecond;
                 $scoes[$keyScorm]->my_item['scorm_seq_rolluprulecond'] = $seq_rolluprolecond;
             }
 
@@ -467,7 +467,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_seq_rulecond'])) {
                     $results['scorm_seq_rulecond'] = array();
                 }
-                $results['scorm_seq_rulecond'] = array_merge($results['scorm_seq_rulecond'], $seq_rulecond);
+                $results['scorm_seq_rulecond'] = $results['scorm_seq_rulecond']+ $seq_rulecond;
                 $scoes[$keyScorm]->my_item['scorm_seq_rulecond'] = $seq_rulecond;
             }
 
@@ -477,7 +477,7 @@ function getMyScorm($scorm) {
                 if (!isset($results['scorm_seq_ruleconds'])) {
                     $results['scorm_seq_ruleconds'] = array();
                 }
-                $results['scorm_seq_ruleconds'] = array_merge($results['scorm_seq_ruleconds'], $seq_ruleconds);
+                $results['scorm_seq_ruleconds'] = $results['scorm_seq_ruleconds']+ $seq_ruleconds;
                 $scoes[$keyScorm]->my_item['scorm_seq_ruleconds'] = $seq_ruleconds;
             }
         }
