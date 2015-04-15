@@ -12,7 +12,6 @@ class MyClient {
     public $school_id = '';
     public $serverip = 'localhost';
     public $restformat = 'xml';
-
     private $_responses;
 
     /**
@@ -23,15 +22,21 @@ class MyClient {
      */
     public function __construct($serverip, $school_id, $token) {
         if (!empty($serverip)) {
-            $this->serverip = 'http://' .$serverip;
+            if ($serverip[strlen($serverip) - 1] == '/') {
+                $serverip = substr($serverip, 0, strlen($serverip) - 1);
+            }
+            $this->serverip = $serverip;
+            if (strpos($serverip, 'http') === false) {
+                $this->serverip = 'http://' .  $this->serverip;
+            }
         }
-        
+
         if (!empty($token)) {
             $this->token .= $token;
         }
-        
+
         if (!empty($school_id)) {
-            $this->token .= ','.$school_id;
+            $this->token .= ',' . $school_id;
         }
     }
 
@@ -40,21 +45,21 @@ class MyClient {
      */
     public function request($params = array()) {
         //domain name
-        $domainname =  $this->serverip;
+        $domainname = $this->serverip;
         //function name
         $functionname = 'local_schoolreg_getcontent';
         //server url
         $serverurl = $domainname . '/local/schoolreg/server.php?wstoken=' . $this->token . '&wsfunction=' . $functionname;
         $restformat = ($this->restformat == 'json') ? '&moodlewsrestformat=' . $this->restformat : '';
-        $this->send($serverurl.$restformat, $params);
+        $this->send($serverurl . $restformat, $params);
     }
-    
+
     /**
      * send request
      * @param type $url
      * @param type $params
      */
-    private function send($url, $params){
+    private function send($url, $params) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_VERBOSE, 0);
@@ -65,7 +70,7 @@ class MyClient {
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
         $this->_responses = curl_exec($ch);
     }
-    
+
     /**
      * Request to server with upload
      */
@@ -78,10 +83,10 @@ class MyClient {
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('database_backup' => "@" . $filePath, 'token' => $this->token);
-        
+
         $this->send($serverurl, $params);
     }
-    
+
     /**
      * Request to server with upload
      */
@@ -93,16 +98,16 @@ class MyClient {
 
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $params = array('token' => $this->token);
-        
+
         $this->send($serverurl, $params);
     }
-    
+
     public function requestUploadSynch($params = array()) {
         //domain name
         $domainname = $this->serverip;
         //server url
         $serverurl = $domainname . '/local/schoolreg/uploadSync.php';
-       
+
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $filePath = $params['file']; //CHANGE THIS !
         $params = array('file_path' => "@" . $filePath, 'token' => $this->token, 'version' => $params['version']);
