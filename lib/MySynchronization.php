@@ -287,15 +287,9 @@ class MySynchronization {
                             if ($fs->get_file_instance($file)->delete()) {
 //                                $fs->create_file_from_url($file, $my_url);
                             }
-//                            $test->
-                            echo "<pre>";
-                            var_dump($test);
-//                            exit();
-//        ->delete();
                         }
                     }
                 }
-                exit();
                 $this->deleteRemovedData();
                 $transaction->allow_commit();
             } catch (Exception $exc) {
@@ -339,8 +333,7 @@ class MySynchronization {
                 if (isset($query)) {
                     $this->getChild($query);
                 }
-echo "<pre>";
-//                var_dump($files);
+
                 if (isset($files)) {
                     $fs = get_file_storage();
                     foreach ($files as $file) {
@@ -365,12 +358,9 @@ echo "<pre>";
                             $context = context_course::instance($course->id);
                             $file->contextid = $context->id;
                             $fs->create_file_from_url($file, $my_url);
-                            var_dump($file);
                         }
                     }
                 }
-                
-                exit();
 
                 $this->deleteRemovedData();
                 $transaction->allow_commit();
