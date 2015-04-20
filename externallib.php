@@ -22,6 +22,7 @@ class local_synchronization_external extends external_api {
                 array(
             'courseid' => new external_value(PARAM_ALPHANUMEXT, 'Course Id', VALUE_DEFAULT, NULL),
             'type' => new external_value(PARAM_BOOL, 'Type', VALUE_DEFAULT, 0),
+//            'token' => new external_value(PARAM_RAW, 'Type', VALUE_DEFAULT, 0),
                 )
         );
     }
@@ -30,19 +31,22 @@ class local_synchronization_external extends external_api {
      * The function itself
      * @return string welcome message
      */
-    public static function getcontent($courseid, $type) {
+    public static function getcontent($courseid,  $type ) {
 
         global $USER, $DB;
 
         //Parameter validation
         //REQUIRED
-        $params = self::validate_parameters(self::getcontent_parameters(), array(
-                    'courseid' => $courseid,
-                    'type' => $type
-                        )
-        );
+//        $params = self::validate_parameters(self::getcontent_parameters(), array(
+//                    'courseid' => $courseid,
+//                    'type' => $type,
+//                    'token' => $token
+//                        )
+//        );
         $courseid = $params['courseid'];
         $type = $params['type'];
+        var_dump($params['token']);
+        exit();
 
         if (!$type) {
             $listCourse = explode('_', $courseid);

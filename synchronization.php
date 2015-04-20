@@ -1,9 +1,8 @@
 <?php
-
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
- require_once(__DIR__ . '/lib/logSync.php');
+require_once(__DIR__ . '/lib/logSync.php');
 
 admin_externalpage_setup('localsynchronization');
 
@@ -14,6 +13,8 @@ $spage = optional_param('spage', 0, PARAM_INT);
 $ssort = optional_param('ssort', 'time', PARAM_ALPHANUMEXT);
 $perpage = 20;
 $baseUrl = '/local/synchronization/synchronization.php';
+
+
 
 if (!empty($newSyncParam)) {
     $log = new logSync();
@@ -48,9 +49,24 @@ if (!empty($newSyncParam)) {
     ));
     $responses = $clientUpload->getResponse(false);
     $redirectUrl = new moodle_url($baseUrl);
+
+    function updateLocal($responses) {
+        global $DB;
+        $result = true;
+        if (property_exists($responses, 'result') && count($responses->result) > 0) {
+            foreach ((array) $responses->result as $table => $item) {
+                foreach ($item as $id => $my_id) {
+                    $result = $DB->execute('update {'.$table.'} set my_id = ? where id = ?', array($my_id, $id)) && $result;
+                }
+            }
+        }
+        return $result;
+    }
+
     if ($responses) {
         $responses = json_decode($responses);
-        if ($responses->success && $DB->update_record('ls_synchronizelog', $record, false)) {
+        if ($responses->success && updateLocal($responses) && $DB->update_record('ls_synchronizelog', $record, false)) {
+            purge_all_caches();
             $log = new logSync();
             $log->dropDump($synchRecord->file_location);
             redirect($redirectUrl, 'Successfully synchronization new package.', 2);
@@ -113,34 +129,34 @@ foreach ($synchLog as $key => $value) {
 }
 $table->print_html();
 ?>
-    <div id="progress_bar" style="display: none;" title="Loading...">
-        <img src="asset/ajax-loader-long.gif"/>
-    </div>
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $(".upload_btn").each(function(){
-                $(this).click(function(){
-                    $("#progress_bar").dialog('open');
-                });
-            });
-
-            $("#progress_bar").dialog({
-                autoOpen: false,
-                width: 300,
-                height: 90,
-                modal: true,
-                draggable: false,
-                closeOnEscape: false,
-                closeText: "hideProgressBar",
-                resizable: false,
-                open: function(){
-                    $("button[title='hideProgressBar']").hide();
-                },
-                close: function(){
-                    $("button[title='hideProgressBar']").show();
-                }
+<div id="progress_bar" style="display: none;" title="Loading...">
+    <img src="asset/ajax-loader-long.gif"/>
+</div>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".upload_btn").each(function() {
+            $(this).click(function() {
+                $("#progress_bar").dialog('open');
             });
         });
-    </script>
+
+        $("#progress_bar").dialog({
+            autoOpen: false,
+            width: 300,
+            height: 90,
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            closeText: "hideProgressBar",
+            resizable: false,
+            open: function() {
+                $("button[title='hideProgressBar']").hide();
+            },
+            close: function() {
+                $("button[title='hideProgressBar']").show();
+            }
+        });
+    });
+</script>
 <?php
 echo $OUTPUT->footer();
