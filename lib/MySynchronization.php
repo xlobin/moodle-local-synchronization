@@ -287,7 +287,6 @@ class MySynchronization {
                     $fs = get_file_storage();
                     foreach ($files as $file) {
                         $file = (object) $file;
-                        var_dump($file);
                         $modules_id = '';
                         if (property_exists($file, 'my_url')) {
                             if (property_exists($file, 'modules_id') && !empty($file->modules_id)) {
@@ -302,12 +301,12 @@ class MySynchronization {
                             if ($record) {
                                 $context = context_module::instance($record->id);
                                 $file->contextid = $context->id;
-                                $fs->create_file_from_url($file, $my_url);
+//                                $fs->create_file_from_url($file, $my_url);
                             }
                         } else {
                             $context = context_course::instance($course->id);
                             $file->contextid = $context->id;
-                            $fs->create_file_from_url($file, $my_url);
+//                            $fs->create_file_from_url($file, $my_url);
                         }
                     }
                 }
