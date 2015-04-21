@@ -3,6 +3,7 @@
 require_once(__DIR__ . '/course.php');
 require_once(__DIR__ . '/moodle_relational_table.php');
 require_once(__DIR__ . '/moodlelib.php');
+require_once($CFG->dirroot . '/course/lib.php');
 
 /**
  * Execute Synchronization
@@ -40,21 +41,24 @@ class MySynchronization {
                 $modlist = explode(',', $section->sequence);
                 $modules = array();
                 foreach ($modlist as $mod) {
+
                     $module = $this->DB->get_record('course_modules', array('id' => $mod));
-                    $mod_type = $this->DB->get_record('modules', array('id' => $module->module));
-                    $module_item = $this->DB->get_records($mod_type->name, array('id' => $module->instance));
-                    foreach ($module_item as $keyItem => $item) {
-                        $functionName = 'getMy' . ucfirst(strtolower($mod_type->name));
-                        if (function_exists($functionName)) {
-                            if ($moduleItem = $functionName($item)) {
-                                if (!isset($this->_existingData[$keyItem])) {
-                                    $this->_existingData[$mod_type->name] = array();
+                    if ($module) {
+                        $mod_type = $this->DB->get_record('modules', array('id' => $module->module));
+                        $module_item = $this->DB->get_records($mod_type->name, array('id' => $module->instance));
+                        foreach ($module_item as $keyItem => $item) {
+                            $functionName = 'getMy' . ucfirst(strtolower($mod_type->name));
+                            if (function_exists($functionName)) {
+                                if ($moduleItem = $functionName($item)) {
+                                    if (!isset($this->_existingData[$keyItem])) {
+                                        $this->_existingData[$mod_type->name] = array();
+                                    }
+                                    $this->_existingData[$mod_type->name] = $this->_existingData[$mod_type->name] + $moduleItem;
                                 }
-                                $this->_existingData[$mod_type->name] = $this->_existingData[$mod_type->name] + $moduleItem;
                             }
                         }
+                        $modules[$module->id] = $module;
                     }
-                    $modules[$module->id] = $module;
                 }
                 if (!isset($this->_existingData['course_modules'])) {
                     $this->_existingData['course_modules'] = array();
@@ -131,8 +135,11 @@ class MySynchronization {
                     ));
                     $item = $this->_moodleRelation->fixRelation();
                 }
-
+                if ($key == 'course_categories') {
+                    $item->parent = 0;
+                }
                 $item = $this->executeQuery($item, $key);
+
                 if (isset($parent['tableName']) && $parent['tableName'] == 'course_modules' && $item) {
                     $update = $parent['tableData'];
                     $update->instance = $item->id;
@@ -165,14 +172,15 @@ class MySynchronization {
      */
     public function executeQuery($query, $table = '') {
         if (!empty($table)) {
-            $query->my_id = $query->id; // assign server id into client my_id
-            if (property_exists($query, 'school_id')) {
-                unset($query->school_id);
-            }
+            $query->my_id = $query->id;
             $jumlah = $this->DB->count_records($table, array('my_id' => $query->id));
             if ($jumlah > 0) {
                 $record = $this->DB->get_record($table, array('my_id' => $query->id));
                 $query->id = $record->id;
+                if ($table == 'course_categories') {
+                    $query->depth = $record->depth;
+                    $query->path = $record->path;
+                }
                 if (isset($this->_existingData[$table])) {
                     unset($this->_existingData[$table][$query->id]);
                 }
@@ -192,8 +200,12 @@ class MySynchronization {
 
     public function deleteRemovedData() {
         foreach ($this->_existingData as $table => $value) {
-            if (!empty($table) && $value && property_exists($value, 'id')) {
-                $this->DB->delete_records($table, array('id' => $value->id));
+            if ($value) {
+                foreach ($value as $key => $item) {
+                    if (!empty($table) && property_exists($item, 'id')) {
+                        $this->DB->delete_records($table, array('id' => $item->id));
+                    }
+                }
             }
         }
     }
@@ -244,8 +256,12 @@ class MySynchronization {
             try {
                 $transaction = $this->DB->start_delegated_transaction();
                 $success = true;
+                $course = $course_params_data;
                 if (isset($category)) {
                     $this->getChild(array('course_categories' => $category));
+                    foreach ($category as $keyCategory => $valueCategory) {
+                        $course->category = $valueCategory->id;
+                    }
                 }
 
                 foreach ($attributes as $table => $insert) {
@@ -254,7 +270,6 @@ class MySynchronization {
                     }
                 }
 
-                $course = $course_params_data;
                 $course->summary_editor = (array) $course->summary_editor;
                 $coursecontext = context_course::instance($course->id);
                 $overview = (array) $course_params_overview;
@@ -272,37 +287,37 @@ class MySynchronization {
                     $fs = get_file_storage();
                     foreach ($files as $file) {
                         $file = (object) $file;
+                        var_dump($file);
                         $modules_id = '';
                         if (property_exists($file, 'my_url')) {
-                            $modules_id = $file->modules_id;
+                            if (property_exists($file, 'modules_id') && !empty($file->modules_id)) {
+                                $modules_id = $file->modules_id;
+                                unset($file->modules_id);
+                            }
                             $my_url = $file->my_url;
                             unset($file->my_url);
                         }
-                        unset($file->modules_id);
-                        if (!empty($modules_id)) {
+                        if (isset($modules_id)) {
                             $record = $this->DB->get_record('course_modules', array('my_id' => $modules_id));
-                            $context = context_module::instance($record->id);
-                            $file->contextid = $context->id;
-                            $test = $fs->get_file_instance($file);
-                            if ($fs->get_file_instance($file)->delete()) {
-//                                $fs->create_file_from_url($file, $my_url);
+                            if ($record) {
+                                $context = context_module::instance($record->id);
+                                $file->contextid = $context->id;
+                                $fs->create_file_from_url($file, $my_url);
                             }
-//                            $test->
-                            echo "<pre>";
-                            var_dump($test);
-//                            exit();
-//        ->delete();
+                        } else {
+                            $context = context_course::instance($course->id);
+                            $file->contextid = $context->id;
+                            $fs->create_file_from_url($file, $my_url);
                         }
                     }
                 }
-                exit();
                 $this->deleteRemovedData();
                 $transaction->allow_commit();
             } catch (Exception $exc) {
                 $transaction->rollback($exc);
             }
 
-            return $success;
+            return true;
         } else if ($status == 'c') {
             try {
                 $transaction = $this->DB->start_delegated_transaction();
@@ -339,8 +354,7 @@ class MySynchronization {
                 if (isset($query)) {
                     $this->getChild($query);
                 }
-echo "<pre>";
-//                var_dump($files);
+
                 if (isset($files)) {
                     $fs = get_file_storage();
                     foreach ($files as $file) {
@@ -365,12 +379,9 @@ echo "<pre>";
                             $context = context_course::instance($course->id);
                             $file->contextid = $context->id;
                             $fs->create_file_from_url($file, $my_url);
-                            var_dump($file);
                         }
                     }
                 }
-                
-                exit();
 
                 $this->deleteRemovedData();
                 $transaction->allow_commit();

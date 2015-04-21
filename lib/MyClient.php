@@ -69,6 +69,8 @@ class MyClient {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
         $this->_responses = curl_exec($ch);
+//        var_dump($this->_responses);
+//        exit();
     }
 
     /**

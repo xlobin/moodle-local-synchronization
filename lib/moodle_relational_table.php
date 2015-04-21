@@ -62,6 +62,7 @@ class moodle_relational_table {
                 context_coursecat::instance($data->id);
                 break;
             case 'course':
+                var_dump($data);exit();
                 context_course::instance($data->id);
                 break;
             case 'course_modules':

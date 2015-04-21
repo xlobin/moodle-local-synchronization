@@ -38,8 +38,8 @@ if (!empty($courseid) && !empty($download)) {
         ));
 
         if ($Synchronization->execute()) {
+            purge_all_caches();
             redirect(new moodle_url($baseUrl), 'Successfully ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
-            core_plugin_manager::reset_caches();
         }
     }
     redirect(new moodle_url($baseUrl), 'Failed ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
