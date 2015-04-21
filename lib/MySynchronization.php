@@ -3,6 +3,7 @@
 require_once(__DIR__ . '/course.php');
 require_once(__DIR__ . '/moodle_relational_table.php');
 require_once(__DIR__ . '/moodlelib.php');
+require_once($CFG->dirroot . '/course/lib.php');
 
 /**
  * Execute Synchronization
@@ -286,21 +287,27 @@ class MySynchronization {
                     $fs = get_file_storage();
                     foreach ($files as $file) {
                         $file = (object) $file;
+                        var_dump($file);
                         $modules_id = '';
                         if (property_exists($file, 'my_url')) {
-                            $modules_id = $file->modules_id;
+                            if (property_exists($file, 'modules_id') && !empty($file->modules_id)) {
+                                $modules_id = $file->modules_id;
+                                unset($file->modules_id);
+                            }
                             $my_url = $file->my_url;
                             unset($file->my_url);
                         }
-                        unset($file->modules_id);
-                        if (!empty($modules_id)) {
+                        if (isset($modules_id)) {
                             $record = $this->DB->get_record('course_modules', array('my_id' => $modules_id));
-                            $context = context_module::instance($record->id);
-                            $file->contextid = $context->id;
-                            $test = $fs->get_file_instance($file);
-                            if ($fs->get_file_instance($file)->delete()) {
-//                                $fs->create_file_from_url($file, $my_url);
+                            if ($record) {
+                                $context = context_module::instance($record->id);
+                                $file->contextid = $context->id;
+                                $fs->create_file_from_url($file, $my_url);
                             }
+                        } else {
+                            $context = context_course::instance($course->id);
+                            $file->contextid = $context->id;
+                            $fs->create_file_from_url($file, $my_url);
                         }
                     }
                 }
