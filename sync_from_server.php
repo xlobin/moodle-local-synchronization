@@ -5,12 +5,14 @@ require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib/MyClient.php');
 require_once(__DIR__ . '/lib/MySynchronization.php');
 require_once($CFG->libdir . '/filelib.php');
+require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
 
 admin_externalpage_setup('localsynchfromserver');
 
 $spage = optional_param('spage', 0, PARAM_INT);
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $download = optional_param('download', 0, PARAM_INT);
+$version = optional_param('version', 0, PARAM_INT);
 $downloadall = optional_param('downloadall', 0, PARAM_INT);
 $status = optional_param('status', 0, PARAM_ALPHA);
 $ssort = optional_param('ssort', 'time', PARAM_ALPHANUMEXT);
@@ -22,27 +24,66 @@ $schoolid = get_config('local_synchronization', 'schoolid');
 $token = get_config('local_synchronization', 'token');
 
 $ress = new MyClient($server_ip, $schoolid, $token);
-$message = array(
-    'u' => 'upgrade',
-    'd' => 'delete',
-    'c' => 'download'
-);
-if (!empty($courseid) && !empty($download)) {
-    $ress->request(array('courseid' => $courseid, 'type' => true));
-    $responses = $ress->getResponse();
-    if ($responses) {
-        $Synchronization = new MySynchronization(array(
-            'response' => $responses,
-            'status' => $status,
-            'courseid' => $courseid
-        ));
 
-        if ($Synchronization->execute()) {
+if (!empty($courseid) && !empty($download)) {
+    $path = $CFG->dataroot . '/temp/backup/';
+    $tempFile = $path . 'backup.mbz';
+    if (!file_exists($path)) {
+        mkdir($path);
+    }
+    $downloadedFile = file_put_contents($tempFile, fopen('http://' . $server_ip . "/local/schoolreg/getfile.php?id=" . $courseid, 'r'));
+    if ($downloadedFile) {
+        $zip = new ZipArchive();
+        if ($zip->open($tempFile) === TRUE) {
+
+            function Delete($path, $parentDelete = true) {
+                if (is_dir($path) === true) {
+                    $files = array_diff(scandir($path), array('.', '..'));
+                    foreach ($files as $file) {
+                        Delete(realpath($path) . '/' . $file);
+                    }
+                    return (($parentDelete) ? rmdir($path) : true);
+                } else if (is_file($path) === true) {
+                    return true;
+                }
+                return false;
+            }
+
+            Delete($path . '1234567890/', false);
+            $zip->extractTo($path . DIRECTORY_SEPARATOR . '1234567890');
+            $zip->close();
+
+            $transaction = $DB->start_delegated_transaction();
+            $folder = '1234567890';
+
+            $categoryid = 1; // e.g. 1 == Miscellaneous
+            $userdoingrestore = 2; // e.g. 2 == admin
+            $before = $DB->get_record('course', array('my_id' => $courseid));
+
+            if ($before) {
+                $course_id = $before->id;
+                $controller = new restore_controller($folder, $course_id, backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore, backup::TARGET_EXISTING_DELETING);
+                $controller->execute_precheck();
+                $controller->execute_plan();
+            } else {
+                $course_id = restore_dbops::create_new_course('', '', $categoryid);
+                $controller = new restore_controller($folder, $course_id, backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore, backup::TARGET_NEW_COURSE);
+                $controller->execute_precheck();
+                $controller->execute_plan();
+            }
+
+            $update = $DB->get_record('course', array('id' => $course_id));
+            $update->my_id = $courseid;
+            $update->sync_version = $version;
+            $DB->update_record('course', $update);
+
+            $transaction->allow_commit();
+            Delete($path . '1234567890/', false);
             purge_all_caches();
-            redirect(new moodle_url($baseUrl), 'Successfully ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
+            redirect(new moodle_url($baseUrl), 'Successfully ' . get_string('download', 'local_synchronization') . ' Course Content.', 2);
         }
     }
-    redirect(new moodle_url($baseUrl), 'Failed ' . get_string($message[$status], 'local_synchronization') . ' Course Content.', 2);
+    redirect(new moodle_url($baseUrl), 'Failed ' . get_string('download', 'local_synchronization') . ' Course Content.', 2);
 }
 
 $PAGE->requires->jquery();
@@ -61,38 +102,16 @@ if (!$CFG->enablewebservices) {
     echo $OUTPUT->notification(get_string('turnonwebservices', 'local_synchronization'), 'notifyproblem');
 }
 
-$courses = $DB->get_records('course', array(), '', 'id, sync_version, category');
+$courses = $DB->get_records('course', array(), '', 'my_id, sync_version, category');
 $course_id = '';
 foreach ($courses as $course) {
     if ($course->category != '0')
-        $course_id .= ((strlen($course_id) > 0) ? "_" : "") . $course->id . '-' . $course->sync_version;
+        $course_id .= ((strlen($course_id) > 0) ? "_" : "") . $course->my_id . '-' . $course->sync_version;
 }
 
-$ress->request(array('courseid' => $course_id));
-$responses = $ress->getResponse();
-
-$result = array();
-$listId = array();
-$listParam = '';
-if ($responses) {
-    if (property_exists($responses->MULTIPLE, 'SINGLE')) {
-        foreach ($responses->MULTIPLE[0]->SINGLE as $key => $response) {
-            $attributes = array();
-            foreach ($response->KEY as $key2 => $value2) {
-                foreach ($value2->attributes() as $key3 => $value3) {
-                    $attributes[(string) $value3] = (string) $value2->VALUE;
-                    if ((string) $value3 === 'id') {
-                        $listId['courseid' . $value2->VALUE] = (string) $value2->VALUE;
-                        $listParam .= ((strlen($listParam) > 0) ? ',' : '') . ':courseid' . $value2->VALUE;
-                    }
-                }
-            }
-            $result[] = $attributes;
-        }
-    } else if (property_exists($responses, 'ERRORCODE')) {
-        echo $OUTPUT->notification($responses->MESSAGE . "<br/>" . $responses->DEBUGINFO, 'notifyproblem');
-    }
-}
+$ress->requesting(array('courseid' => $course_id));
+$responses = $ress->getResponse(false);
+$result = json_decode($responses);
 
 $table = new flexible_table('tbl_synchronize_from_server');
 
@@ -117,45 +136,24 @@ $table->set_attribute('cellspacing', '0');
 $table->setup();
 $sort = $table->get_sql_sort();
 $urlDownload = new moodle_url($baseUrl, array('download' => 1));
-foreach ($result as $key => $value) {
-    if ($value['status'] == 'c') {
-        
-    } else if ($value['status'] == 'd') {
-        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string('download', 'local_synchronization'), array(
-                    'class' => 'btn',
-        ));
-    } else if ($value['status'] == 'u') {
-        $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string('download', 'local_synchronization'), array(
-                    'class' => 'btn',
-        ));
+$no = 1;
+if ($result) {
+    if (is_object($result) && property_exists($result, 'error')) {}else{
+        foreach ($result as $key => $value) {
+            $action = html_writer::link($urlDownload . '&courseid=' . $value->id . '&version=' . $value->version, get_string('download', 'local_synchronization'), array(
+                        'class' => 'btn upload_btn',
+            ));
+
+            $value->course_summary = (isset($value->course_summary)) ? $value->course_summary : '';
+            $table->add_data(array(
+                $no++,
+                $value->fullname,
+                $value->shortname,
+                $value->course_summary,
+                $action,
+            ));
+        }
     }
-
-    switch ($value['status']) {
-        case 'u':
-            $messages = $message['u'];
-            break;
-        case 'd':
-            $messages = $message['d'];
-            $value = (array) $DB->get_record('course', array('id' => $value['id']));
-            $value['status'] = 'd';
-            break;
-        default:
-            $messages = $message['c'];
-            break;
-    }
-
-    $action = html_writer::link($urlDownload . '&courseid=' . $value['id'] . '&status=' . $value['status'], get_string($messages, 'local_synchronization'), array(
-                'class' => 'btn upload_btn',
-    ));
-
-    $value['course_summary'] = (isset($value['course_summary'])) ? $value['course_summary'] : '';
-    $table->add_data(array(
-        $value['id'],
-        $value['fullname'],
-        $value['shortname'],
-        $value['course_summary'],
-        $action,
-    ));
 }
 $table->print_html();
 ?>

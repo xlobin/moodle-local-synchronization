@@ -3,6 +3,7 @@ require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib/logSync.php');
+require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 
 admin_externalpage_setup('localsynchronization');
 
@@ -14,26 +15,108 @@ $ssort = optional_param('ssort', 'time', PARAM_ALPHANUMEXT);
 $perpage = 20;
 $baseUrl = '/local/synchronization/synchronization.php';
 
-
-
 if (!empty($newSyncParam)) {
     $log = new logSync();
     $redirectUrl = new moodle_url($baseUrl);
-    if ($path = $log->generate_dump(true)) {
-        if (!empty($path)) {
+
+    $courses = $DB->get_records_sql('SELECT {course}.* from {course} where {course}.my_id != 0');
+    if ($courses) {
+
+        /* creates a compressed zip file */
+
+        function create_zip($files = array(), $destination = '', $overwrite = false) {
+            //if the zip file already exists and overwrite is false, return false
+            if (file_exists($destination) && !$overwrite) {
+                return false;
+            }
+
+            //vars
+            $valid_files = array();
+            //if files were passed in...
+            if (is_array($files)) {
+                //cycle through each file
+                foreach ($files as $file) {
+                    //make sure the file exists
+                    if (file_exists($file)) {
+                        $valid_files[] = $file;
+                    }
+                }
+            }
+            //if we have good files...
+            if (count($valid_files)) {
+                //create the archive
+                $zip = new ZipArchive();
+                if ($zip->open($destination, $overwrite ? ZIPARCHIVE::OVERWRITE : ZIPARCHIVE::CREATE) !== true) {
+                    return false;
+                }
+                //add the files
+                foreach ($valid_files as $file) {
+                    $zip->addFile($file, $file);
+                }
+                //debug
+                //echo 'The zip archive contains ',$zip->numFiles,' files with a status of ',$zip->status;
+                //close the zip -- done!
+                $zip->close();
+                //check to make sure the file exists
+                return file_exists($destination);
+            } else {
+                return false;
+            }
+        }
+
+        $files_to_zip = array();
+        foreach ($courses as $course) {
+            $course_id = $course->id;
+            $user_doing_the_backup = 2;
+            $fileName = 'course_' . $course->my_id . '.mbz';
+            $downloadedFile = file_put_contents($fileName, fopen($CFG->wwwroot . "/local/synchronization/getfile.php?id=" . $course->id, 'r'));
+            $bc = new backup_controller(backup::TYPE_1COURSE, $course_id, backup::FORMAT_MOODLE, backup::INTERACTIVE_NO, backup::MODE_GENERAL, $user_doing_the_backup);
+            $bc->execute_plan();
+            if ($downloadedFile) {
+                $files_to_zip[] = $fileName;
+            }
+        }
+
+        $fileLocation = __DIR__ . '/my-archive-' . date('ymdhis') . '.zip';
+
+        function Delete($path, $parentDelete = true) {
+            if (is_dir($path) === true) {
+                $files = array_diff(scandir($path), array('.', '..'));
+                foreach ($files as $file) {
+                    Delete(realpath($path) . '/' . $file);
+                }
+                return (($parentDelete) ? rmdir($path) : true);
+            } else if (is_file($path) === true) {
+                return unlink($path);
+            }
+            return false;
+        }
+
+        $result = create_zip($files_to_zip, $fileLocation, true);
+        if ($result) {
             $record = new stdClass();
             $record->time = date('Y-m-d H:i:s');
-            $record->file_location = $path;
+            $record->file_location = $fileLocation;
             $record->version = time();
             $record->status = 0;
             $lastinsertid = $DB->insert_record('ls_synchronizelog', $record, false);
-            redirect($redirectUrl, 'Successfully Created new package.', 2);
+            foreach ($files_to_zip as $file) {
+                if (file_exists($file)) {
+                    echo $file;
+                    Delete($file, false);
+                    exit();
+                }
+            }
         }
+        redirect($redirectUrl, 'Successfully Created new package.', 2);
     }
     redirect($redirectUrl, 'Failed to Created new package. No Update found.', 2);
 } else if (!empty($upload) && !empty($id)) {
     require_once(__DIR__ . '/lib/MyClient.php');
     $synchRecord = $DB->get_record('ls_synchronizelog', array('id' => $id));
+    
+//    var_dump($synchRecord);
+//    exit();
     $record = new stdClass();
     $record->id = $id;
     $record->status = 1;
@@ -50,22 +133,22 @@ if (!empty($newSyncParam)) {
     $responses = $clientUpload->getResponse(false);
     $redirectUrl = new moodle_url($baseUrl);
 
-    function updateLocal($responses) {
-        global $DB;
-        $result = true;
-        if (property_exists($responses, 'result') && count($responses->result) > 0) {
-            foreach ((array) $responses->result as $table => $item) {
-                foreach ($item as $id => $my_id) {
-                    $result = $DB->execute('update {'.$table.'} set my_id = ? where id = ?', array($my_id, $id)) && $result;
-                }
-            }
-        }
-        return $result;
-    }
+//    function updateLocal($responses) {
+//        global $DB;
+//        $result = true;
+//        if (property_exists($responses, 'result') && count($responses->result) > 0) {
+//            foreach ((array) $responses->result as $table => $item) {
+//                foreach ($item as $id => $my_id) {
+//                    $result = $DB->execute('update {' . $table . '} set my_id = ? where id = ?', array($my_id, $id)) && $result;
+//                }
+//            }
+//        }
+//        return $result;
+//    }
 
     if ($responses) {
         $responses = json_decode($responses);
-        if ($responses->success && updateLocal($responses) && $DB->update_record('ls_synchronizelog', $record, false)) {
+        if ($responses->success && $DB->update_record('ls_synchronizelog', $record, false)) {
             purge_all_caches();
             $log = new logSync();
             $log->dropDump($synchRecord->file_location);

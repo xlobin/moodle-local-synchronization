@@ -37,6 +37,7 @@ function xmldb_local_synchronization_install() {
     }
 
     $listTables = array(
+        'course',
         'course_sections', 
         'course_modules', 
         'course_categories',

@@ -69,8 +69,6 @@ class MyClient {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
         $this->_responses = curl_exec($ch);
-//        var_dump($this->_responses);
-//        exit();
     }
 
     /**
@@ -100,6 +98,21 @@ class MyClient {
 
         //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
         $params = array('token' => $this->token);
+
+        $this->send($serverurl, $params);
+    }
+    
+    /**
+     * Request to server with upload
+     */
+    public function requesting($params = array()) {
+        //domain name
+        $domainname = $this->serverip;
+        //server url
+        $serverurl = $domainname . '/local/schoolreg/get_list_course.php';
+
+        //Note: check "Maximum uploaded file size" in your Moodle "Site Policies".
+        $params['token'] = $this->token;
 
         $this->send($serverurl, $params);
     }
