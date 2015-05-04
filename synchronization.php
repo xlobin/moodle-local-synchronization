@@ -102,9 +102,7 @@ if (!empty($newSyncParam)) {
             $lastinsertid = $DB->insert_record('ls_synchronizelog', $record, false);
             foreach ($files_to_zip as $file) {
                 if (file_exists($file)) {
-                    echo $file;
                     Delete($file, false);
-                    exit();
                 }
             }
         }
@@ -133,29 +131,31 @@ if (!empty($newSyncParam)) {
     $responses = $clientUpload->getResponse(false);
     $redirectUrl = new moodle_url($baseUrl);
 
-//    function updateLocal($responses) {
-//        global $DB;
-//        $result = true;
-//        if (property_exists($responses, 'result') && count($responses->result) > 0) {
-//            foreach ((array) $responses->result as $table => $item) {
-//                foreach ($item as $id => $my_id) {
-//                    $result = $DB->execute('update {' . $table . '} set my_id = ? where id = ?', array($my_id, $id)) && $result;
-//                }
-//            }
-//        }
-//        return $result;
-//    }
+    function updateLocal($responses) {
+        global $DB;
+        $result = true;
+        if (property_exists($responses, 'result') && count($responses->result) > 0) {
+            foreach ((array) $responses->result as $id => $my_id) {
+                $update = $DB->get_record('course', array('my_id' => $id));
+                $update->my_id = $my_id;
+                $result = $DB->update_record('course', $update) && $result;
+            }
+        }
+        return $result;
+    }
 
+    $message = 'Failed synchronization new package.';
     if ($responses) {
         $responses = json_decode($responses);
-        if ($responses->success && $DB->update_record('ls_synchronizelog', $record, false)) {
+        $message = $responses->message;
+        if ($responses->success && updateLocal($responses) && $DB->update_record('ls_synchronizelog', $record, false)) {
             purge_all_caches();
             $log = new logSync();
             $log->dropDump($synchRecord->file_location);
-            redirect($redirectUrl, 'Successfully synchronization new package.', 2);
+            redirect($redirectUrl, $message, 2);
         }
     }
-    redirect($redirectUrl, 'Failed synchronization new package.', 2);
+    redirect($redirectUrl, $message, 2);
 }
 
 $PAGE->requires->jquery();

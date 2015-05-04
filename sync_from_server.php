@@ -61,16 +61,13 @@ if (!empty($courseid) && !empty($download)) {
             $before = $DB->get_record('course', array('my_id' => $courseid));
 
             if ($before) {
-                $course_id = $before->id;
-                $controller = new restore_controller($folder, $course_id, backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore, backup::TARGET_EXISTING_DELETING);
-                $controller->execute_precheck();
-                $controller->execute_plan();
-            } else {
-                $course_id = restore_dbops::create_new_course('', '', $categoryid);
-                $controller = new restore_controller($folder, $course_id, backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore, backup::TARGET_NEW_COURSE);
-                $controller->execute_precheck();
-                $controller->execute_plan();
+                delete_course($before->id, false);
+                $courseid = $before->my_id;
             }
+            $course_id = restore_dbops::create_new_course('', '', $categoryid);
+            $controller = new restore_controller($folder, $course_id, backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore, backup::TARGET_NEW_COURSE);
+            $controller->execute_precheck();
+            $controller->execute_plan();
 
             $update = $DB->get_record('course', array('id' => $course_id));
             $update->my_id = $courseid;
@@ -138,7 +135,9 @@ $sort = $table->get_sql_sort();
 $urlDownload = new moodle_url($baseUrl, array('download' => 1));
 $no = 1;
 if ($result) {
-    if (is_object($result) && property_exists($result, 'error')) {}else{
+    if (is_object($result) && property_exists($result, 'error')) {
+        
+    } else {
         foreach ($result as $key => $value) {
             $action = html_writer::link($urlDownload . '&courseid=' . $value->id . '&version=' . $value->version, get_string('download', 'local_synchronization'), array(
                         'class' => 'btn upload_btn',
